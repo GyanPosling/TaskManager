@@ -1,0 +1,79 @@
+databaseChangeLog:
+  - changeSet:
+      id: 003-create-tasks
+      author: bursh
+      changes:
+        - createTable:
+            tableName: tasks
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_tasks
+                    nullable: false
+              - column:
+                  name: title
+                  type: VARCHAR(200)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: VARCHAR(2000)
+              - column:
+                  name: status
+                  type: VARCHAR(30)
+                  defaultValue: TODO
+                  constraints:
+                    nullable: false
+              - column:
+                  name: due_date
+                  type: DATE
+              - column:
+                  name: project_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: assignee_id
+                  type: BIGINT
+        - addForeignKeyConstraint:
+            constraintName: fk_tasks_project
+            baseTableName: tasks
+            baseColumnNames: project_id
+            referencedTableName: projects
+            referencedColumnNames: id
+            onDelete: CASCADE
+        - addForeignKeyConstraint:
+            constraintName: fk_tasks_assignee
+            baseTableName: tasks
+            baseColumnNames: assignee_id
+            referencedTableName: users
+            referencedColumnNames: id
+            onDelete: SET NULL
+        - createIndex:
+            indexName: ix_tasks_project_id
+            tableName: tasks
+            columns:
+              - column:
+                  name: project_id
+        - createIndex:
+            indexName: ix_tasks_assignee_id
+            tableName: tasks
+            columns:
+              - column:
+                  name: assignee_id
+        - createIndex:
+            indexName: ix_tasks_status
+            tableName: tasks
+            columns:
+              - column:
+                  name: status
+        - createIndex:
+            indexName: ix_tasks_due_date
+            tableName: tasks
+            columns:
+              - column:
+                  name: due_date
