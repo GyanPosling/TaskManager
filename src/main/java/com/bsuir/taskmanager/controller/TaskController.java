@@ -2,8 +2,6 @@ package com.bsuir.taskmanager.controller;
 
 import com.bsuir.taskmanager.dto.request.TaskRequest;
 import com.bsuir.taskmanager.dto.response.TaskResponse;
-import com.bsuir.taskmanager.mapper.TaskMapper;
-import com.bsuir.taskmanager.model.entity.Task;
 import com.bsuir.taskmanager.model.entity.TaskStatus;
 import com.bsuir.taskmanager.service.TaskService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -33,7 +31,6 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "Tasks", description = "Task CRUD operations")
 public class TaskController {
     private final TaskService taskService;
-    private final TaskMapper taskMapper;
 
     @GetMapping
     @Operation(summary = "Get all tasks", description = "Optional filtering by status")
@@ -44,13 +41,28 @@ public class TaskController {
             @Parameter(description = "Task status filter")
             @RequestParam(name = "status", required = false) TaskStatus status
     ) {
-        List<Task> tasks = status == null
+        List<TaskResponse> response = status == null
                 ? taskService.findAll()
                 : taskService.findByStatus(status);
-        List<TaskResponse> response = tasks.stream()
-                .map(taskMapper::toResponse)
-                .toList();
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/with-tags")
+    @Operation(summary = "Get all tasks with tags")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Tasks returned")
+    })
+    public ResponseEntity<List<TaskResponse>> getAllWithTags() {
+        return ResponseEntity.ok(taskService.findAllWithTags());
+    }
+
+    @GetMapping("/with-comments")
+    @Operation(summary = "Get all tasks with comments")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Tasks returned")
+    })
+    public ResponseEntity<List<TaskResponse>> getAllWithComments() {
+        return ResponseEntity.ok(taskService.findAllWithComments());
     }
 
     @GetMapping("/{id}")
@@ -60,8 +72,7 @@ public class TaskController {
             @ApiResponse(responseCode = "404", description = "Task not found")
     })
     public ResponseEntity<TaskResponse> getById(@PathVariable("id") Long id) {
-        Task task = taskService.findById(id);
-        return ResponseEntity.ok(taskMapper.toResponse(task));
+        return ResponseEntity.ok(taskService.findById(id));
     }
 
     @PostMapping
@@ -71,8 +82,8 @@ public class TaskController {
             @ApiResponse(responseCode = "400", description = "Validation error")
     })
     public ResponseEntity<TaskResponse> create(@Valid @RequestBody TaskRequest request) {
-        Task task = taskService.create(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(taskMapper.toResponse(task));
+        TaskResponse response = taskService.create(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PutMapping("/{id}")
@@ -86,8 +97,7 @@ public class TaskController {
             @PathVariable("id") Long id,
             @Valid @RequestBody TaskRequest request
     ) {
-        Task task = taskService.update(id, request);
-        return ResponseEntity.ok(taskMapper.toResponse(task));
+        return ResponseEntity.ok(taskService.update(id, request));
     }
 
     @DeleteMapping("/{id}")

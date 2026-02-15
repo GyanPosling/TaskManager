@@ -1,6 +1,7 @@
 package com.bsuir.taskmanager.service;
 
 import com.bsuir.taskmanager.dto.request.TaskRequest;
+import com.bsuir.taskmanager.dto.response.TaskResponse;
 import com.bsuir.taskmanager.mapper.TaskMapper;
 import com.bsuir.taskmanager.model.entity.Project;
 import com.bsuir.taskmanager.model.entity.Tag;
@@ -29,31 +30,42 @@ public class TaskService {
     private final TagRepository tagRepository;
     private final TaskMapper taskMapper;
 
-    public List<Task> findAll() {
-        return taskRepository.findAll();
+    public List<TaskResponse> findAll() {
+        return toResponses(taskRepository.findAll());
     }
 
-    public Task findById(Long id) {
-        return taskRepository.findById(id)
+    public List<TaskResponse> findAllWithTags() {
+        return toResponses(taskRepository.findAllWithTags());
+    }
+
+    public List<TaskResponse> findAllWithComments() {
+        return toResponses(taskRepository.findAllWithComments());
+    }
+
+    public TaskResponse findById(Long id) {
+        Task task = taskRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Task not found: " + id));
+        return taskMapper.toResponse(task);
     }
 
-    public List<Task> findByStatus(TaskStatus status) {
-        return taskRepository.findByStatus(status);
+    public List<TaskResponse> findByStatus(TaskStatus status) {
+        return toResponses(taskRepository.findByStatus(status));
     }
 
     @Transactional
-    public Task create(TaskRequest request) {
+    public TaskResponse create(TaskRequest request) {
         Project project = getProject(request.getProjectId());
         User assignee = getAssignee(request.getAssigneeId());
         Set<Tag> tags = getTags(request.getTagIds());
         Task task = taskMapper.fromRequest(request, project, assignee, tags);
-        return taskRepository.save(task);
+        Task saved = taskRepository.save(task);
+        return taskMapper.toResponse(saved);
     }
 
     @Transactional
-    public Task update(Long id, TaskRequest request) {
-        Task task = findById(id);
+    public TaskResponse update(Long id, TaskRequest request) {
+        Task task = taskRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Task not found: " + id));
         Project project = getProject(request.getProjectId());
         User assignee = getAssignee(request.getAssigneeId());
         Set<Tag> tags = getTags(request.getTagIds());
@@ -64,7 +76,8 @@ public class TaskService {
         task.setProject(project);
         task.setAssignee(assignee);
         task.setTags(tags);
-        return taskRepository.save(task);
+        Task saved = taskRepository.save(task);
+        return taskMapper.toResponse(saved);
     }
 
     @Transactional
@@ -97,5 +110,11 @@ public class TaskService {
             throw new EntityNotFoundException("Some tags not found");
         }
         return new HashSet<>(tags);
+    }
+
+    private List<TaskResponse> toResponses(List<Task> tasks) {
+        return tasks.stream()
+                .map(taskMapper::toResponse)
+                .toList();
     }
 }

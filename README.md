@@ -1,7 +1,8 @@
 # Task Manager
-
+## Bursh Anton 450502
+[SonarCloud Checking]()
 ## Overview
-This is a Spring Boot REST API for managing tasks in a simple task management domain. It uses PostgreSQL for persistence and Liquibase for schema migrations. The current API surface focuses on task CRUD, with entities for users, projects, tags, and comments already modeled in the domain layer.
+This is a Java Spring Boot REST API for managing tasks in a simple task management domain.
 
 ## Features
 - Task CRUD endpoints with optional filtering by status
@@ -15,19 +16,9 @@ This is a Spring Boot REST API for managing tasks in a simple task management do
 - Spring Boot (Web MVC, Data JPA, Validation, Actuator)
 - PostgreSQL
 - Liquibase
-- Lombok
 - Maven
+- Git
 
-## Project Structure
-- `src/main/java/com/bsuir/taskmanager/controller` REST controllers
-- `src/main/java/com/bsuir/taskmanager/service` business logic
-- `src/main/java/com/bsuir/taskmanager/repository` Spring Data repositories
-- `src/main/java/com/bsuir/taskmanager/dto` request and response DTOs
-- `src/main/java/com/bsuir/taskmanager/mapper` DTO/entity mapping
-- `src/main/java/com/bsuir/taskmanager/model/entity` JPA entities
-- `src/main/resources/db/changelog` Liquibase changelogs
-- `src/main/resources/application.yml` application configuration
-- `compose.yaml` Docker Compose services
 
 ## Configuration
 The application reads environment variables from `.env` via Spring configuration import. Key variables:
@@ -41,6 +32,14 @@ The application reads environment variables from `.env` via Spring configuration
 ## Database and Migrations
 Liquibase runs on startup and applies changesets from `src/main/resources/db/changelog/db.changelog-master.yaml`. The schema includes users, projects, tasks, tags, comments, and the task-to-tag join table.
 
+## Cascade and Fetch Strategy
+Cascade and fetch choices are set to keep the domain consistent while avoiding heavy default loads.
+- `Project -> tasks` uses `CascadeType.ALL` with `orphanRemoval=true` so tasks are created/removed with their owning project.
+- `Task -> comments` uses `CascadeType.ALL` with `orphanRemoval=true` because comments are strictly tied to a task lifecycle.
+- `Task <-> tags` has no cascade because tags are shared entities and must not be deleted when a task is deleted.
+- `ManyToOne` associations use `FetchType.LAZY` to avoid loading parent entities unless needed (project, assignee, author).
+- `OneToMany`/`ManyToMany` collections are `LAZY` to keep list queries light; when relationships are required they should be fetched explicitly.
+
 ## API
 Current HTTP endpoints are under the task resource:
 - List all tasks, optionally filtered by status
@@ -49,8 +48,14 @@ Current HTTP endpoints are under the task resource:
 - Update task
 - Delete task
 
+Additional task endpoints for JPA fetch strategy:
+- `/api/tasks/with-tags` loads tasks with tags using `@EntityGraph`.
+- `/api/tasks/with-comments` loads tasks with comments using `JOIN FETCH`.
+
 ## Running the Project
 You can run the application either with Maven locally or with Docker Compose. For Docker Compose, the setup includes both the app and PostgreSQL with a named volume for data persistence.
 
 ## Testing and Quality
 The project includes a basic test skeleton and Checkstyle configuration under `config/checkstyle`.
+SonarCloud for analysing code.
+
