@@ -1,13 +1,16 @@
 package com.bsuir.taskmanager.service;
 
+import com.bsuir.taskmanager.dto.request.TaskCompositeRequest;
 import com.bsuir.taskmanager.dto.request.TaskRequest;
 import com.bsuir.taskmanager.dto.response.TaskResponse;
 import com.bsuir.taskmanager.mapper.TaskMapper;
+import com.bsuir.taskmanager.model.entity.Comment;
 import com.bsuir.taskmanager.model.entity.Project;
 import com.bsuir.taskmanager.model.entity.Tag;
 import com.bsuir.taskmanager.model.entity.Task;
 import com.bsuir.taskmanager.model.entity.TaskStatus;
 import com.bsuir.taskmanager.model.entity.User;
+import com.bsuir.taskmanager.repository.CommentRepository;
 import com.bsuir.taskmanager.repository.ProjectRepository;
 import com.bsuir.taskmanager.repository.TagRepository;
 import com.bsuir.taskmanager.repository.TaskRepository;
@@ -18,6 +21,7 @@ import java.util.List;
 import java.util.Set;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -28,6 +32,7 @@ public class TaskService {
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
     private final TagRepository tagRepository;
+    private final CommentRepository commentRepository;
     private final TaskMapper taskMapper;
 
     public List<TaskResponse> findAll() {
@@ -60,6 +65,16 @@ public class TaskService {
         Task task = taskMapper.fromRequest(request, project, assignee, tags);
         Task saved = taskRepository.save(task);
         return taskMapper.toResponse(saved);
+    }
+
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public TaskResponse createTaskWithTagAndCommentNoTx(TaskCompositeRequest request) {
+        return createCompositeInternal(request);
+    }
+
+    @Transactional
+    public TaskResponse createTaskWithTagAndCommentTx(TaskCompositeRequest request) {
+        return createCompositeInternal(request);
     }
 
     @Transactional
@@ -110,6 +125,36 @@ public class TaskService {
             throw new EntityNotFoundException("Some tags not found");
         }
         return new HashSet<>(tags);
+    }
+
+    private User getCommentAuthor(Long authorId) {
+        return userRepository.findById(authorId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found: " + authorId));
+    }
+
+    private TaskResponse createCompositeInternal(TaskCompositeRequest request) {
+        Project project = getProject(request.getProjectId());
+        User assignee = getAssignee(request.getAssigneeId());
+        Task task = taskMapper.fromCompositeRequest(request, project, assignee, new HashSet<>());
+        Task savedTask = taskRepository.save(task);
+
+        Tag tag = new Tag();
+        tag.setName(request.getTagName());
+        Tag savedTag = tagRepository.save(tag);
+        savedTask.getTags().add(savedTag);
+        savedTask = taskRepository.save(savedTask);
+
+        if (request.isFailAfterTask()) {
+            throw new IllegalStateException("Forced error after saving task and tag");
+        }
+
+        User author = getCommentAuthor(request.getCommentAuthorId());
+        Comment comment = new Comment();
+        comment.setText(request.getCommentText());
+        comment.setTask(savedTask);
+        comment.setAuthor(author);
+        commentRepository.save(comment);
+        return taskMapper.toResponse(savedTask);
     }
 
     private List<TaskResponse> toResponses(List<Task> tasks) {

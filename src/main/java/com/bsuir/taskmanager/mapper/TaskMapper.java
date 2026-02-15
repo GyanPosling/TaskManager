@@ -1,5 +1,6 @@
 package com.bsuir.taskmanager.mapper;
 
+import com.bsuir.taskmanager.dto.request.TaskCompositeRequest;
 import com.bsuir.taskmanager.dto.request.TaskRequest;
 import com.bsuir.taskmanager.dto.response.TaskResponse;
 import com.bsuir.taskmanager.model.entity.Project;
@@ -31,6 +32,19 @@ public class TaskMapper {
     }
 
     public Task fromRequest(TaskRequest request, Project project, User assignee, Set<Tag> tags) {
+        Task task = new Task();
+        task.setTitle(request.getTitle());
+        task.setDescription(request.getDescription());
+        TaskStatus status = request.getStatus() != null ? request.getStatus() : TaskStatus.TODO;
+        task.setStatus(status);
+        task.setDueDate(request.getDueDate());
+        task.setProject(project);
+        task.setAssignee(assignee);
+        task.setTags(tags != null ? tags : new HashSet<>());
+        return task;
+    }
+
+    public Task fromCompositeRequest(TaskCompositeRequest request, Project project, User assignee, Set<Tag> tags) {
         Task task = new Task();
         task.setTitle(request.getTitle());
         task.setDescription(request.getDescription());

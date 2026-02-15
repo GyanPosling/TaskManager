@@ -1,6 +1,7 @@
 # Task Manager
 ## Bursh Anton 450502
-[SonarCloud Checking]()
+### [SonarCloud Checking](https://sonarcloud.io/project/overview?id=GyanPosling_TaskManager)
+### [ER - Diagram](docs/ER-Diagramm.png)
 ## Overview
 This is a Java Spring Boot REST API for managing tasks in a simple task management domain.
 

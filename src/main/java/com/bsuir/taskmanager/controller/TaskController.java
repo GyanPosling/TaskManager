@@ -1,5 +1,6 @@
 package com.bsuir.taskmanager.controller;
 
+import com.bsuir.taskmanager.dto.request.TaskCompositeRequest;
 import com.bsuir.taskmanager.dto.request.TaskRequest;
 import com.bsuir.taskmanager.dto.response.TaskResponse;
 import com.bsuir.taskmanager.model.entity.TaskStatus;
@@ -83,6 +84,32 @@ public class TaskController {
     })
     public ResponseEntity<TaskResponse> create(@Valid @RequestBody TaskRequest request) {
         TaskResponse response = taskService.create(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/with-tag-and-comment/no-tx")
+    @Operation(summary = "Create task, tag, comment without transaction")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Composite data created"),
+            @ApiResponse(responseCode = "400", description = "Validation error")
+    })
+    public ResponseEntity<TaskResponse> createTaskWithTagAndCommentNoTx(
+            @Valid @RequestBody TaskCompositeRequest request
+    ) {
+        TaskResponse response = taskService.createTaskWithTagAndCommentNoTx(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/with-tag-and-comment/tx")
+    @Operation(summary = "Create task, tag, comment with transaction")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Composite data created"),
+            @ApiResponse(responseCode = "400", description = "Validation error")
+    })
+    public ResponseEntity<TaskResponse> createTaskWithTagAndCommentTx(
+            @Valid @RequestBody TaskCompositeRequest request
+    ) {
+        TaskResponse response = taskService.createTaskWithTagAndCommentTx(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
