@@ -13,6 +13,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     List<Task> findByStatus(TaskStatus status);
 
     @EntityGraph(attributePaths = "tags")
+    @Query("select t from Task t")
     List<Task> findAllWithTags();
 
     @Query("select distinct t from Task t left join fetch t.comments")
