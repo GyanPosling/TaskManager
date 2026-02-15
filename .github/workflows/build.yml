@@ -1,4 +1,4 @@
-name: SonarQube
+﻿name: SonarQube
 on:
   push:
     branches:
@@ -10,6 +10,27 @@ jobs:
   build:
     name: Build and analyze
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: taskManagerDb
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d taskManagerDb"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_NAME: taskManagerDb
+      DB_USER: postgres
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      DOCKER_COMPOSE_ENABLED: false
     steps:
       - uses: actions/checkout@v4
         with:
