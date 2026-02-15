@@ -5,7 +5,6 @@ import com.bsuir.taskmanager.dto.response.ProjectResponse;
 import com.bsuir.taskmanager.service.ProjectService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -30,29 +29,23 @@ public class ProjectController {
 
     @GetMapping
     @Operation(summary = "Get all projects")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Projects returned")
-    })
+    @ApiResponse(responseCode = "200", description = "Projects returned")
     public ResponseEntity<List<ProjectResponse>> getAll() {
         return ResponseEntity.ok(projectService.findAll());
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Get project by id")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Project found"),
-            @ApiResponse(responseCode = "404", description = "Project not found")
-    })
+    @ApiResponse(responseCode = "200", description = "Project found")
+    @ApiResponse(responseCode = "404", description = "Project not found")
     public ResponseEntity<ProjectResponse> getById(@PathVariable("id") Long id) {
         return ResponseEntity.ok(projectService.findById(id));
     }
 
     @PostMapping
     @Operation(summary = "Create project")
-    @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Project created"),
-            @ApiResponse(responseCode = "400", description = "Validation error")
-    })
+    @ApiResponse(responseCode = "201", description = "Project created")
+    @ApiResponse(responseCode = "400", description = "Validation error")
     public ResponseEntity<ProjectResponse> create(@Valid @RequestBody ProjectRequest request) {
         ProjectResponse response = projectService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -60,11 +53,9 @@ public class ProjectController {
 
     @PutMapping("/{id}")
     @Operation(summary = "Update project")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Project updated"),
-            @ApiResponse(responseCode = "400", description = "Validation error"),
-            @ApiResponse(responseCode = "404", description = "Project not found")
-    })
+    @ApiResponse(responseCode = "200", description = "Project updated")
+    @ApiResponse(responseCode = "400", description = "Validation error")
+    @ApiResponse(responseCode = "404", description = "Project not found")
     public ResponseEntity<ProjectResponse> update(
             @PathVariable("id") Long id,
             @Valid @RequestBody ProjectRequest request
@@ -74,10 +65,8 @@ public class ProjectController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete project")
-    @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "Project deleted"),
-            @ApiResponse(responseCode = "404", description = "Project not found")
-    })
+    @ApiResponse(responseCode = "204", description = "Project deleted")
+    @ApiResponse(responseCode = "404", description = "Project not found")
     public ResponseEntity<Void> delete(@PathVariable("id") Long id) {
         projectService.delete(id);
         return ResponseEntity.noContent().build();

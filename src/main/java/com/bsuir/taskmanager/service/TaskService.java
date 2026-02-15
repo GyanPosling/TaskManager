@@ -135,7 +135,7 @@ public class TaskService {
     private TaskResponse createCompositeInternal(TaskCompositeRequest request) {
         Project project = getProject(request.getProjectId());
         User assignee = getAssignee(request.getAssigneeId());
-        Task task = taskMapper.fromCompositeRequest(request, project, assignee, new HashSet<>());
+        Task task = taskMapper.fromRequest(request, project, assignee, new HashSet<>());
         Task savedTask = taskRepository.save(task);
 
         Tag tag = new Tag();
