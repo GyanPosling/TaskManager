@@ -33,3 +33,18 @@ build/
 .vscode/
 # Local env (contains secrets)
 .env
+# Local env (contains secrets)
+.env
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Build outputs
+target/
+build/
