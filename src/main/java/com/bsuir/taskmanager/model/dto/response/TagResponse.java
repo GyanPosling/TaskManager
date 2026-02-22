@@ -1,4 +1,4 @@
-package com.bsuir.taskmanager.dto.response;
+package com.bsuir.taskmanager.model.dto.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;

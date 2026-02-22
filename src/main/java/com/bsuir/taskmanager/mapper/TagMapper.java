@@ -1,40 +1,15 @@
 package com.bsuir.taskmanager.mapper;
 
-import com.bsuir.taskmanager.dto.request.TagRequest;
-import com.bsuir.taskmanager.dto.response.TagResponse;
+import com.bsuir.taskmanager.model.dto.request.TagRequest;
+import com.bsuir.taskmanager.model.dto.response.TagResponse;
 import com.bsuir.taskmanager.model.entity.Tag;
-import org.springframework.stereotype.Component;
+import org.mapstruct.Mapper;
 
-@Component
-public class TagMapper {
-    public TagResponse toResponse(Tag tag) {
-        if (tag == null) {
-            return null;
-        }
+@Mapper(componentModel = "spring")
+public interface TagMapper {
+    TagResponse toResponse(Tag tag);
 
-        TagResponse response = new TagResponse();
-        response.setId(tag.getId());
-        response.setName(tag.getName());
-        return response;
-    }
+    Tag fromRequest(TagRequest request);
 
-    public Tag fromRequest(TagRequest request) {
-        if (request == null) {
-            return null;
-        }
-
-        Tag tag = new Tag();
-        tag.setName(request.getName());
-        return tag;
-    }
-
-    public TagRequest toRequest(Tag tag) {
-        if (tag == null) {
-            return null;
-        }
-
-        TagRequest request = new TagRequest();
-        request.setName(tag.getName());
-        return request;
-    }
+    TagRequest toRequest(Tag tag);
 }

@@ -1,7 +1,7 @@
 package com.bsuir.taskmanager.service.impl;
 
-import com.bsuir.taskmanager.dto.request.UserRequest;
-import com.bsuir.taskmanager.dto.response.UserResponse;
+import com.bsuir.taskmanager.model.dto.request.UserRequest;
+import com.bsuir.taskmanager.model.dto.response.UserResponse;
 import com.bsuir.taskmanager.mapper.UserMapper;
 import com.bsuir.taskmanager.model.entity.User;
 import com.bsuir.taskmanager.repository.UserRepository;

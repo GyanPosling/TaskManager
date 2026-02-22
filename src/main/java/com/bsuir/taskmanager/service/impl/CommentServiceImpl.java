@@ -1,7 +1,7 @@
 package com.bsuir.taskmanager.service.impl;
 
-import com.bsuir.taskmanager.dto.request.CommentRequest;
-import com.bsuir.taskmanager.dto.response.CommentResponse;
+import com.bsuir.taskmanager.model.dto.request.CommentRequest;
+import com.bsuir.taskmanager.model.dto.response.CommentResponse;
 import com.bsuir.taskmanager.mapper.CommentMapper;
 import com.bsuir.taskmanager.model.entity.Comment;
 import com.bsuir.taskmanager.model.entity.Task;

@@ -1,0 +1,2034 @@
+Τΰιλ Comment.java
+
+package com.bsuir.taskmanager.model.entity;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import java.time.LocalDateTime;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@Entity
+@Table(name = "comments")
+public class Comment {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
+    private Long id;
+
+    @Column(nullable = false, length = 2000)
+    private String text;
+
+    @Column(nullable = false)
+    private LocalDateTime createdAt = LocalDateTime.now();
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "task_id", nullable = false)
+    private Task task;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "author_id", nullable = false)
+    private User author;
+}
+
+
+Τΰιλ Project.java
+
+package com.bsuir.taskmanager.model.entity;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import java.util.ArrayList;
+import java.util.List;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@Entity
+@Table(name = "projects")
+public class Project {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
+    private Long id;
+
+    @Column(nullable = false, length = 150)
+    private String name;
+
+    @Column(length = 1000)
+    private String description;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id", nullable = false)
+    private User owner;
+
+    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Task> tasks = new ArrayList<>();
+}
+
+
+Τΰιλ Tag.java
+
+package com.bsuir.taskmanager.model.entity;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.Table;
+import java.util.HashSet;
+import java.util.Set;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@Entity
+@Table(name = "tags")
+public class Tag {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
+    private Long id;
+
+    @Column(nullable = false, unique = true, length = 80)
+    private String name;
+
+    @ManyToMany(mappedBy = "tags", fetch = FetchType.LAZY)
+    private Set<Task> tasks = new HashSet<>();
+}
+
+
+Τΰιλ Task.java
+
+package com.bsuir.taskmanager.model.entity;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@Entity
+@Table(name = "tasks")
+public class Task {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
+    private Long id;
+
+    @Column(nullable = false, length = 200)
+    private String title;
+
+    @Column(length = 2000)
+    private String description;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private TaskStatus status = TaskStatus.TODO;
+
+    private LocalDate dueDate;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id", nullable = false)
+    private Project project;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assignee_id")
+    private User assignee;
+
+    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Comment> comments = new ArrayList<>();
+
+    @ManyToMany
+    @JoinTable(
+            name = "task_tags",
+            joinColumns = @JoinColumn(name = "task_id"),
+            inverseJoinColumns = @JoinColumn(name = "tag_id")
+    )
+    private Set<Tag> tags = new HashSet<>();
+}
+
+
+Τΰιλ TaskStatus.java
+
+package com.bsuir.taskmanager.model.entity;
+
+public enum TaskStatus {
+    TODO,
+    IN_PROGRESS,
+    DONE
+}
+
+
+Τΰιλ User.java
+
+package com.bsuir.taskmanager.model.entity;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import java.util.HashSet;
+import java.util.Set;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@Entity
+@Table(name = "users")
+public class User {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
+    private Long id;
+
+    @Column(nullable = false, unique = true, length = 50)
+    private String username;
+
+    @Column(nullable = false, unique = true, length = 255)
+    private String email;
+
+    @OneToMany(mappedBy = "assignee", fetch = FetchType.LAZY)
+    private Set<Task> assignedTasks = new HashSet<>();
+
+    @OneToMany(mappedBy = "author", fetch = FetchType.LAZY)
+    private Set<Comment> comments = new HashSet<>();
+
+    @OneToMany(mappedBy = "owner", fetch = FetchType.LAZY)
+    private Set<Project> ownedProjects = new HashSet<>();
+}
+
+
+Τΰιλ CommentRequest.java
+
+package com.bsuir.taskmanager.dto.request;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class CommentRequest {
+    @Schema(description = "Comment text", example = "Please update the estimates")
+    @NotBlank
+    @Size(max = 2000)
+    private String text;
+
+    @Schema(description = "Task id", example = "10")
+    @NotNull
+    @Positive
+    private Long taskId;
+
+    @Schema(description = "Author user id", example = "3")
+    @NotNull
+    @Positive
+    private Long authorId;
+}
+
+
+Τΰιλ ProjectRequest.java
+
+package com.bsuir.taskmanager.dto.request;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class ProjectRequest {
+    @Schema(description = "Project name", example = "Release Planning")
+    @NotBlank
+    @Size(max = 150)
+    private String name;
+
+    @Schema(description = "Project description", example = "Plan the Q3 release")
+    @Size(max = 1000)
+    private String description;
+
+    @Schema(description = "Owner user id", example = "2")
+    @NotNull
+    @Positive
+    private Long ownerId;
+}
+
+
+Τΰιλ TagRequest.java
+
+package com.bsuir.taskmanager.dto.request;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class TagRequest {
+    @Schema(description = "Tag name", example = "backend")
+    @NotBlank
+    @Size(max = 80)
+    private String name;
+}
+
+
+Τΰιλ TaskCompositeRequest.java
+
+package com.bsuir.taskmanager.dto.request;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class TaskCompositeRequest extends TaskRequest {
+    @Schema(description = "New tag name", example = "urgent")
+    @NotBlank
+    @Size(max = 80)
+    private String tagName;
+
+    @Schema(description = "Comment text", example = "Please update the estimates")
+    @NotBlank
+    @Size(max = 2000)
+    private String commentText;
+
+    @Schema(description = "Comment author user id", example = "3")
+    @NotNull
+    @Positive
+    private Long commentAuthorId;
+
+    @Schema(description = "Force an error after task and tag are saved", example = "true")
+    private boolean failAfterTask;
+}
+
+
+Τΰιλ TaskRequest.java
+
+package com.bsuir.taskmanager.dto.request;
+
+import com.bsuir.taskmanager.model.entity.TaskStatus;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.FutureOrPresent;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
+import java.time.LocalDate;
+import java.util.Set;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class TaskRequest {
+    @Schema(description = "Task title", example = "Fix build pipeline")
+    @NotBlank
+    @Size(max = 200)
+    private String title;
+
+    @Schema(description = "Task description", example = "Update CI and fix failing tests")
+    @Size(max = 2000)
+    private String description;
+
+    @Schema(description = "Task status", example = "IN_PROGRESS")
+    @NotNull
+    private TaskStatus status;
+
+    @Schema(description = "Due date", example = "2026-02-20")
+    @FutureOrPresent
+    private LocalDate dueDate;
+
+    @Schema(description = "Project id", example = "1")
+    @NotNull
+    @Positive
+    private Long projectId;
+
+    @Schema(description = "Assignee user id", example = "3")
+    @Positive
+    private Long assigneeId;
+
+    @Schema(description = "Tag ids", example = "[2, 5, 7]")
+    @Size(max = 50)
+    private Set<@Positive Long> tagIds;
+}
+
+
+Τΰιλ UserRequest.java
+
+package com.bsuir.taskmanager.dto.request;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class UserRequest {
+    @Schema(description = "Username", example = "jdoe")
+    @NotBlank
+    @Size(max = 50)
+    private String username;
+
+    @Schema(description = "Email", example = "jdoe@example.com")
+    @NotBlank
+    @Email
+    @Size(max = 255)
+    private String email;
+}
+
+
+Τΰιλ CommentResponse.java
+
+package com.bsuir.taskmanager.dto.response;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import java.time.LocalDateTime;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class CommentResponse {
+    @Schema(description = "Comment id", example = "12")
+    private Long id;
+
+    @Schema(description = "Comment text", example = "Please update the estimates")
+    private String text;
+
+    @Schema(description = "Creation time", example = "2026-02-12T09:30:00")
+    private LocalDateTime createdAt;
+
+    @Schema(description = "Task id", example = "10")
+    private Long taskId;
+
+    @Schema(description = "Author user id", example = "3")
+    private Long authorId;
+}
+
+
+Τΰιλ ProjectResponse.java
+
+package com.bsuir.taskmanager.dto.response;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class ProjectResponse {
+    @Schema(description = "Project id", example = "1")
+    private Long id;
+
+    @Schema(description = "Project name", example = "Release Planning")
+    private String name;
+
+    @Schema(description = "Project description", example = "Plan the Q3 release")
+    private String description;
+
+    @Schema(description = "Owner user id", example = "2")
+    private Long ownerId;
+}
+
+
+Τΰιλ TagResponse.java
+
+package com.bsuir.taskmanager.dto.response;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class TagResponse {
+    @Schema(description = "Tag id", example = "5")
+    private Long id;
+
+    @Schema(description = "Tag name", example = "backend")
+    private String name;
+}
+
+
+Τΰιλ TaskResponse.java
+
+package com.bsuir.taskmanager.dto.response;
+
+import com.bsuir.taskmanager.model.entity.TaskStatus;
+import io.swagger.v3.oas.annotations.media.Schema;
+import java.time.LocalDate;
+import java.util.Set;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class TaskResponse {
+    @Schema(description = "Task id", example = "10")
+    private Long id;
+
+    @Schema(description = "Task title", example = "Fix build pipeline")
+    private String title;
+
+    @Schema(description = "Task description", example = "Update CI and fix failing tests")
+    private String description;
+
+    @Schema(description = "Task status", example = "IN_PROGRESS")
+    private TaskStatus status;
+
+    @Schema(description = "Due date", example = "2026-02-20")
+    private LocalDate dueDate;
+
+    @Schema(description = "Project id", example = "1")
+    private Long projectId;
+
+    @Schema(description = "Assignee user id", example = "3")
+    private Long assigneeId;
+
+    @Schema(description = "Tag ids", example = "[2, 5, 7]")
+    private Set<Long> tagIds;
+}
+
+
+Τΰιλ UserResponse.java
+
+package com.bsuir.taskmanager.dto.response;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class UserResponse {
+    @Schema(description = "User id", example = "1")
+    private Long id;
+
+    @Schema(description = "Username", example = "jdoe")
+    private String username;
+
+    @Schema(description = "Email", example = "jdoe@example.com")
+    private String email;
+}
+
+
+Τΰιλ CommentMapper.java
+
+package com.bsuir.taskmanager.mapper;
+
+import com.bsuir.taskmanager.dto.request.CommentRequest;
+import com.bsuir.taskmanager.dto.response.CommentResponse;
+import com.bsuir.taskmanager.model.entity.Comment;
+import com.bsuir.taskmanager.model.entity.Task;
+import com.bsuir.taskmanager.model.entity.User;
+import org.springframework.stereotype.Component;
+
+@Component
+public class CommentMapper {
+    public CommentResponse toResponse(Comment comment) {
+        if (comment == null) {
+            return null;
+        }
+
+        CommentResponse response = new CommentResponse();
+        response.setId(comment.getId());
+        response.setText(comment.getText());
+        response.setCreatedAt(comment.getCreatedAt());
+        response.setTaskId(comment.getTask() != null ? comment.getTask().getId() : null);
+        response.setAuthorId(comment.getAuthor() != null ? comment.getAuthor().getId() : null);
+        return response;
+    }
+
+    public Comment fromRequest(CommentRequest request, Task task, User author) {
+        if (request == null) {
+            return null;
+        }
+
+        Comment comment = new Comment();
+        comment.setText(request.getText());
+        comment.setTask(task);
+        comment.setAuthor(author);
+        return comment;
+    }
+
+    public CommentRequest toRequest(Comment comment) {
+        if (comment == null) {
+            return null;
+        }
+
+        CommentRequest request = new CommentRequest();
+        request.setText(comment.getText());
+        request.setTaskId(comment.getTask() != null ? comment.getTask().getId() : null);
+        request.setAuthorId(comment.getAuthor() != null ? comment.getAuthor().getId() : null);
+        return request;
+    }
+}
+
+
+Τΰιλ ProjectMapper.java
+
+package com.bsuir.taskmanager.mapper;
+
+import com.bsuir.taskmanager.dto.request.ProjectRequest;
+import com.bsuir.taskmanager.dto.response.ProjectResponse;
+import com.bsuir.taskmanager.model.entity.Project;
+import com.bsuir.taskmanager.model.entity.User;
+import org.springframework.stereotype.Component;
+
+@Component
+public class ProjectMapper {
+    public ProjectResponse toResponse(Project project) {
+        if (project == null) {
+            return null;
+        }
+
+        ProjectResponse response = new ProjectResponse();
+        response.setId(project.getId());
+        response.setName(project.getName());
+        response.setDescription(project.getDescription());
+        response.setOwnerId(project.getOwner() != null ? project.getOwner().getId() : null);
+        return response;
+    }
+
+    public Project fromRequest(ProjectRequest request, User owner) {
+        if (request == null) {
+            return null;
+        }
+
+        Project project = new Project();
+        project.setName(request.getName());
+        project.setDescription(request.getDescription());
+        project.setOwner(owner);
+        return project;
+    }
+
+    public ProjectRequest toRequest(Project project) {
+        if (project == null) {
+            return null;
+        }
+
+        ProjectRequest request = new ProjectRequest();
+        request.setName(project.getName());
+        request.setDescription(project.getDescription());
+        request.setOwnerId(project.getOwner() != null ? project.getOwner().getId() : null);
+        return request;
+    }
+}
+
+
+Τΰιλ TagMapper.java
+
+package com.bsuir.taskmanager.mapper;
+
+import com.bsuir.taskmanager.dto.request.TagRequest;
+import com.bsuir.taskmanager.dto.response.TagResponse;
+import com.bsuir.taskmanager.model.entity.Tag;
+import org.springframework.stereotype.Component;
+
+@Component
+public class TagMapper {
+    public TagResponse toResponse(Tag tag) {
+        if (tag == null) {
+            return null;
+        }
+
+        TagResponse response = new TagResponse();
+        response.setId(tag.getId());
+        response.setName(tag.getName());
+        return response;
+    }
+
+    public Tag fromRequest(TagRequest request) {
+        if (request == null) {
+            return null;
+        }
+
+        Tag tag = new Tag();
+        tag.setName(request.getName());
+        return tag;
+    }
+
+    public TagRequest toRequest(Tag tag) {
+        if (tag == null) {
+            return null;
+        }
+
+        TagRequest request = new TagRequest();
+        request.setName(tag.getName());
+        return request;
+    }
+}
+
+
+Τΰιλ TaskMapper.java
+
+package com.bsuir.taskmanager.mapper;
+
+import com.bsuir.taskmanager.dto.request.TaskRequest;
+import com.bsuir.taskmanager.dto.response.TaskResponse;
+import com.bsuir.taskmanager.model.entity.Project;
+import com.bsuir.taskmanager.model.entity.Tag;
+import com.bsuir.taskmanager.model.entity.Task;
+import com.bsuir.taskmanager.model.entity.TaskStatus;
+import com.bsuir.taskmanager.model.entity.User;
+import java.util.HashSet;
+import java.util.Set;
+import org.springframework.stereotype.Component;
+
+@Component
+public class TaskMapper {
+    public TaskResponse toResponse(Task task) {
+        if (task == null) {
+            return null;
+        }
+
+        TaskResponse response = new TaskResponse();
+        response.setId(task.getId());
+        response.setTitle(task.getTitle());
+        response.setDescription(task.getDescription());
+        response.setStatus(task.getStatus());
+        response.setDueDate(task.getDueDate());
+        response.setProjectId(task.getProject() != null ? task.getProject().getId() : null);
+        response.setAssigneeId(task.getAssignee() != null ? task.getAssignee().getId() : null);
+        response.setTagIds(mapTagIds(task.getTags()));
+        return response;
+    }
+
+    public Task fromRequest(TaskRequest request, Project project, User assignee, Set<Tag> tags) {
+        Task task = new Task();
+        task.setTitle(request.getTitle());
+        task.setDescription(request.getDescription());
+        TaskStatus status = request.getStatus() != null ? request.getStatus() : TaskStatus.TODO;
+        task.setStatus(status);
+        task.setDueDate(request.getDueDate());
+        task.setProject(project);
+        task.setAssignee(assignee);
+        task.setTags(tags != null ? tags : new HashSet<>());
+        return task;
+    }
+
+
+    public TaskRequest toRequest(Task task) {
+        if (task == null) {
+            return null;
+        }
+
+        TaskRequest request = new TaskRequest();
+        request.setTitle(task.getTitle());
+        request.setDescription(task.getDescription());
+        request.setStatus(task.getStatus());
+        request.setDueDate(task.getDueDate());
+        request.setProjectId(task.getProject() != null ? task.getProject().getId() : null);
+        request.setAssigneeId(task.getAssignee() != null ? task.getAssignee().getId() : null);
+        request.setTagIds(mapTagIds(task.getTags()));
+        return request;
+    }
+
+    private Set<Long> mapTagIds(Set<Tag> tags) {
+        if (tags == null || tags.isEmpty()) {
+            return Set.of();
+        }
+        Set<Long> tagIds = new HashSet<>();
+        for (Tag tag : tags) {
+            tagIds.add(tag.getId());
+        }
+        return tagIds;
+    }
+}
+
+
+Τΰιλ UserMapper.java
+
+package com.bsuir.taskmanager.mapper;
+
+import com.bsuir.taskmanager.dto.request.UserRequest;
+import com.bsuir.taskmanager.dto.response.UserResponse;
+import com.bsuir.taskmanager.model.entity.User;
+import org.springframework.stereotype.Component;
+
+@Component
+public class UserMapper {
+    public UserResponse toResponse(User user) {
+        if (user == null) {
+            return null;
+        }
+
+        UserResponse response = new UserResponse();
+        response.setId(user.getId());
+        response.setUsername(user.getUsername());
+        response.setEmail(user.getEmail());
+        return response;
+    }
+
+    public User fromRequest(UserRequest request) {
+        if (request == null) {
+            return null;
+        }
+
+        User user = new User();
+        user.setUsername(request.getUsername());
+        user.setEmail(request.getEmail());
+        return user;
+    }
+
+    public UserRequest toRequest(User user) {
+        if (user == null) {
+            return null;
+        }
+
+        UserRequest request = new UserRequest();
+        request.setUsername(user.getUsername());
+        request.setEmail(user.getEmail());
+        return request;
+    }
+}
+
+
+Τΰιλ CommentRepository.java
+
+package com.bsuir.taskmanager.repository;
+
+import com.bsuir.taskmanager.model.entity.Comment;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface CommentRepository extends JpaRepository<Comment, Long> {
+}
+
+
+Τΰιλ ProjectRepository.java
+
+package com.bsuir.taskmanager.repository;
+
+import com.bsuir.taskmanager.model.entity.Project;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface ProjectRepository extends JpaRepository<Project, Long> {
+}
+
+
+Τΰιλ TagRepository.java
+
+package com.bsuir.taskmanager.repository;
+
+import com.bsuir.taskmanager.model.entity.Tag;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface TagRepository extends JpaRepository<Tag, Long> {
+}
+
+
+Τΰιλ TaskRepository.java
+
+package com.bsuir.taskmanager.repository;
+
+import com.bsuir.taskmanager.model.entity.Task;
+import com.bsuir.taskmanager.model.entity.TaskStatus;
+import java.util.List;
+import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface TaskRepository extends JpaRepository<Task, Long> {
+    List<Task> findByStatus(TaskStatus status);
+
+    @EntityGraph(attributePaths = "tags")
+    @Query("select t from Task t")
+    List<Task> findAllWithTags();
+
+    @Query("select distinct t from Task t left join fetch t.comments")
+    List<Task> findAllWithComments();
+}
+
+
+Τΰιλ UserRepository.java
+
+package com.bsuir.taskmanager.repository;
+
+import com.bsuir.taskmanager.model.entity.User;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface UserRepository extends JpaRepository<User, Long> {
+}
+
+
+Τΰιλ CommentService.java
+
+package com.bsuir.taskmanager.service;
+
+import com.bsuir.taskmanager.dto.request.CommentRequest;
+import com.bsuir.taskmanager.dto.response.CommentResponse;
+import java.util.List;
+
+public interface CommentService {
+    List<CommentResponse> findAll();
+
+    CommentResponse findById(Long id);
+
+    CommentResponse create(CommentRequest request);
+
+    CommentResponse update(Long id, CommentRequest request);
+
+    void delete(Long id);
+}
+
+
+Τΰιλ CommentServiceImpl.java
+
+package com.bsuir.taskmanager.service.impl;
+
+import com.bsuir.taskmanager.dto.request.CommentRequest;
+import com.bsuir.taskmanager.dto.response.CommentResponse;
+import com.bsuir.taskmanager.mapper.CommentMapper;
+import com.bsuir.taskmanager.model.entity.Comment;
+import com.bsuir.taskmanager.model.entity.Task;
+import com.bsuir.taskmanager.model.entity.User;
+import com.bsuir.taskmanager.repository.CommentRepository;
+import com.bsuir.taskmanager.repository.TaskRepository;
+import com.bsuir.taskmanager.repository.UserRepository;
+import com.bsuir.taskmanager.service.CommentService;
+import jakarta.persistence.EntityNotFoundException;
+import java.util.List;
+import lombok.AllArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@Transactional(readOnly = true)
+@AllArgsConstructor
+public class CommentServiceImpl implements CommentService {
+    private final CommentRepository commentRepository;
+    private final TaskRepository taskRepository;
+    private final UserRepository userRepository;
+    private final CommentMapper commentMapper;
+
+    @Override
+    public List<CommentResponse> findAll() {
+        return commentRepository.findAll().stream()
+                .map(commentMapper::toResponse)
+                .toList();
+    }
+
+    @Override
+    public CommentResponse findById(Long id) {
+        Comment comment = commentRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Comment not found: " + id));
+        return commentMapper.toResponse(comment);
+    }
+
+    @Override
+    @Transactional
+    public CommentResponse create(CommentRequest request) {
+        Task task = getTask(request.getTaskId());
+        User author = getAuthor(request.getAuthorId());
+        Comment comment = commentMapper.fromRequest(request, task, author);
+        Comment saved = commentRepository.save(comment);
+        return commentMapper.toResponse(saved);
+    }
+
+    @Override
+    @Transactional
+    public CommentResponse update(Long id, CommentRequest request) {
+        Comment comment = commentRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Comment not found: " + id));
+        Task task = getTask(request.getTaskId());
+        User author = getAuthor(request.getAuthorId());
+        comment.setText(request.getText());
+        comment.setTask(task);
+        comment.setAuthor(author);
+        Comment saved = commentRepository.save(comment);
+        return commentMapper.toResponse(saved);
+    }
+
+    @Override
+    @Transactional
+    public void delete(Long id) {
+        if (!commentRepository.existsById(id)) {
+            throw new EntityNotFoundException("Comment not found: " + id);
+        }
+        commentRepository.deleteById(id);
+    }
+
+    private Task getTask(Long taskId) {
+        return taskRepository.findById(taskId)
+                .orElseThrow(() -> new EntityNotFoundException("Task not found: " + taskId));
+    }
+
+    private User getAuthor(Long authorId) {
+        return userRepository.findById(authorId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found: " + authorId));
+    }
+}
+
+
+Τΰιλ ProjectServiceImpl.java
+
+package com.bsuir.taskmanager.service.impl;
+
+import com.bsuir.taskmanager.dto.request.ProjectRequest;
+import com.bsuir.taskmanager.dto.response.ProjectResponse;
+import com.bsuir.taskmanager.mapper.ProjectMapper;
+import com.bsuir.taskmanager.model.entity.Project;
+import com.bsuir.taskmanager.model.entity.User;
+import com.bsuir.taskmanager.repository.ProjectRepository;
+import com.bsuir.taskmanager.repository.UserRepository;
+import com.bsuir.taskmanager.service.ProjectService;
+import jakarta.persistence.EntityNotFoundException;
+import java.util.List;
+import lombok.AllArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@Transactional(readOnly = true)
+@AllArgsConstructor
+public class ProjectServiceImpl implements ProjectService {
+    private final ProjectRepository projectRepository;
+    private final UserRepository userRepository;
+    private final ProjectMapper projectMapper;
+
+    @Override
+    public List<ProjectResponse> findAll() {
+        return projectRepository.findAll().stream()
+                .map(projectMapper::toResponse)
+                .toList();
+    }
+
+    @Override
+    public ProjectResponse findById(Long id) {
+        Project project = projectRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Project not found: " + id));
+        return projectMapper.toResponse(project);
+    }
+
+    @Override
+    @Transactional
+    public ProjectResponse create(ProjectRequest request) {
+        User owner = getOwner(request.getOwnerId());
+        Project project = projectMapper.fromRequest(request, owner);
+        Project saved = projectRepository.save(project);
+        return projectMapper.toResponse(saved);
+    }
+
+    @Override
+    @Transactional
+    public ProjectResponse update(Long id, ProjectRequest request) {
+        Project project = projectRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Project not found: " + id));
+        User owner = getOwner(request.getOwnerId());
+        project.setName(request.getName());
+        project.setDescription(request.getDescription());
+        project.setOwner(owner);
+        Project saved = projectRepository.save(project);
+        return projectMapper.toResponse(saved);
+    }
+
+    @Override
+    @Transactional
+    public void delete(Long id) {
+        if (!projectRepository.existsById(id)) {
+            throw new EntityNotFoundException("Project not found: " + id);
+        }
+        projectRepository.deleteById(id);
+    }
+
+    private User getOwner(Long ownerId) {
+        return userRepository.findById(ownerId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found: " + ownerId));
+    }
+}
+
+
+Τΰιλ TagServiceImpl.java
+
+package com.bsuir.taskmanager.service.impl;
+
+import com.bsuir.taskmanager.dto.request.TagRequest;
+import com.bsuir.taskmanager.dto.response.TagResponse;
+import com.bsuir.taskmanager.mapper.TagMapper;
+import com.bsuir.taskmanager.model.entity.Tag;
+import com.bsuir.taskmanager.repository.TagRepository;
+import com.bsuir.taskmanager.service.TagService;
+import jakarta.persistence.EntityNotFoundException;
+import java.util.List;
+import lombok.AllArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@Transactional(readOnly = true)
+@AllArgsConstructor
+public class TagServiceImpl implements TagService {
+    private final TagRepository tagRepository;
+    private final TagMapper tagMapper;
+
+    @Override
+    public List<TagResponse> findAll() {
+        return tagRepository.findAll().stream()
+                .map(tagMapper::toResponse)
+                .toList();
+    }
+
+    @Override
+    public TagResponse findById(Long id) {
+        Tag tag = tagRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Tag not found: " + id));
+        return tagMapper.toResponse(tag);
+    }
+
+    @Override
+    @Transactional
+    public TagResponse create(TagRequest request) {
+        Tag tag = tagMapper.fromRequest(request);
+        Tag saved = tagRepository.save(tag);
+        return tagMapper.toResponse(saved);
+    }
+
+    @Override
+    @Transactional
+    public TagResponse update(Long id, TagRequest request) {
+        Tag tag = tagRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Tag not found: " + id));
+        tag.setName(request.getName());
+        Tag saved = tagRepository.save(tag);
+        return tagMapper.toResponse(saved);
+    }
+
+    @Override
+    @Transactional
+    public void delete(Long id) {
+        if (!tagRepository.existsById(id)) {
+            throw new EntityNotFoundException("Tag not found: " + id);
+        }
+        tagRepository.deleteById(id);
+    }
+}
+
+
+Τΰιλ TaskServiceImpl.java
+
+package com.bsuir.taskmanager.service.impl;
+
+import com.bsuir.taskmanager.dto.request.TaskCompositeRequest;
+import com.bsuir.taskmanager.dto.request.TaskRequest;
+import com.bsuir.taskmanager.dto.response.TaskResponse;
+import com.bsuir.taskmanager.mapper.TaskMapper;
+import com.bsuir.taskmanager.model.entity.Comment;
+import com.bsuir.taskmanager.model.entity.Project;
+import com.bsuir.taskmanager.model.entity.Tag;
+import com.bsuir.taskmanager.model.entity.Task;
+import com.bsuir.taskmanager.model.entity.TaskStatus;
+import com.bsuir.taskmanager.model.entity.User;
+import com.bsuir.taskmanager.repository.CommentRepository;
+import com.bsuir.taskmanager.repository.ProjectRepository;
+import com.bsuir.taskmanager.repository.TagRepository;
+import com.bsuir.taskmanager.repository.TaskRepository;
+import com.bsuir.taskmanager.repository.UserRepository;
+import com.bsuir.taskmanager.service.TaskService;
+import jakarta.persistence.EntityNotFoundException;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import lombok.AllArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@Transactional(readOnly = true)
+@AllArgsConstructor
+public class TaskServiceImpl implements TaskService {
+    private final TaskRepository taskRepository;
+    private final ProjectRepository projectRepository;
+    private final UserRepository userRepository;
+    private final TagRepository tagRepository;
+    private final CommentRepository commentRepository;
+    private final TaskMapper taskMapper;
+
+    @Override
+    public List<TaskResponse> findAll() {
+        return toResponses(taskRepository.findAll());
+    }
+
+    @Override
+    public List<TaskResponse> findAllWithTags() {
+        return toResponses(taskRepository.findAllWithTags());
+    }
+
+    @Override
+    public List<TaskResponse> findAllWithComments() {
+        return toResponses(taskRepository.findAllWithComments());
+    }
+
+    @Override
+    public TaskResponse findById(Long id) {
+        Task task = taskRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Task not found: " + id));
+        return taskMapper.toResponse(task);
+    }
+
+    @Override
+    public List<TaskResponse> findByStatus(TaskStatus status) {
+        return toResponses(taskRepository.findByStatus(status));
+    }
+
+    @Override
+    @Transactional
+    public TaskResponse create(TaskRequest request) {
+        Project project = getProject(request.getProjectId());
+        User assignee = getAssignee(request.getAssigneeId());
+        Set<Tag> tags = getTags(request.getTagIds());
+        Task task = taskMapper.fromRequest(request, project, assignee, tags);
+        Task saved = taskRepository.save(task);
+        return taskMapper.toResponse(saved);
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public TaskResponse createTaskWithTagAndCommentNoTx(TaskCompositeRequest request) {
+        return createCompositeInternal(request);
+    }
+
+    @Override
+    @Transactional
+    public TaskResponse createTaskWithTagAndCommentTx(TaskCompositeRequest request) {
+        return createCompositeInternal(request);
+    }
+
+    @Override
+    @Transactional
+    public TaskResponse update(Long id, TaskRequest request) {
+        Task task = taskRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Task not found: " + id));
+        Project project = getProject(request.getProjectId());
+        User assignee = getAssignee(request.getAssigneeId());
+        Set<Tag> tags = getTags(request.getTagIds());
+        task.setTitle(request.getTitle());
+        task.setDescription(request.getDescription());
+        task.setStatus(request.getStatus());
+        task.setDueDate(request.getDueDate());
+        task.setProject(project);
+        task.setAssignee(assignee);
+        task.setTags(tags);
+        Task saved = taskRepository.save(task);
+        return taskMapper.toResponse(saved);
+    }
+
+    @Override
+    @Transactional
+    public void delete(Long id) {
+        if (!taskRepository.existsById(id)) {
+            throw new EntityNotFoundException("Task not found: " + id);
+        }
+        taskRepository.deleteById(id);
+    }
+
+    private Project getProject(Long projectId) {
+        return projectRepository.findById(projectId)
+                .orElseThrow(() -> new EntityNotFoundException("Project not found: " + projectId));
+    }
+
+    private User getAssignee(Long assigneeId) {
+        if (assigneeId == null) {
+            return null;
+        }
+        return userRepository.findById(assigneeId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found: " + assigneeId));
+    }
+
+    private Set<Tag> getTags(Set<Long> tagIds) {
+        if (tagIds == null || tagIds.isEmpty()) {
+            return new HashSet<>();
+        }
+        List<Tag> tags = tagRepository.findAllById(tagIds);
+        if (tags.size() != tagIds.size()) {
+            throw new EntityNotFoundException("Some tags not found");
+        }
+        return new HashSet<>(tags);
+    }
+
+    private User getCommentAuthor(Long authorId) {
+        return userRepository.findById(authorId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found: " + authorId));
+    }
+
+    private TaskResponse createCompositeInternal(TaskCompositeRequest request) {
+        Project project = getProject(request.getProjectId());
+        User assignee = getAssignee(request.getAssigneeId());
+        Task task = taskMapper.fromRequest(request, project, assignee, new HashSet<>());
+        Task savedTask = taskRepository.save(task);
+
+        Tag tag = new Tag();
+        tag.setName(request.getTagName());
+        Tag savedTag = tagRepository.save(tag);
+        savedTask.getTags().add(savedTag);
+        savedTask = taskRepository.save(savedTask);
+
+        if (request.isFailAfterTask()) {
+            throw new IllegalStateException("Forced error after saving task and tag");
+        }
+
+        User author = getCommentAuthor(request.getCommentAuthorId());
+        Comment comment = new Comment();
+        comment.setText(request.getCommentText());
+        comment.setTask(savedTask);
+        comment.setAuthor(author);
+        commentRepository.save(comment);
+        return taskMapper.toResponse(savedTask);
+    }
+
+    private List<TaskResponse> toResponses(List<Task> tasks) {
+        return tasks.stream()
+                .map(taskMapper::toResponse)
+                .toList();
+    }
+}
+
+
+Τΰιλ UserServiceImpl.java
+
+package com.bsuir.taskmanager.service.impl;
+
+import com.bsuir.taskmanager.dto.request.UserRequest;
+import com.bsuir.taskmanager.dto.response.UserResponse;
+import com.bsuir.taskmanager.mapper.UserMapper;
+import com.bsuir.taskmanager.model.entity.User;
+import com.bsuir.taskmanager.repository.UserRepository;
+import com.bsuir.taskmanager.service.UserService;
+import jakarta.persistence.EntityNotFoundException;
+import java.util.List;
+import lombok.AllArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@Transactional(readOnly = true)
+@AllArgsConstructor
+public class UserServiceImpl implements UserService {
+    private final UserRepository userRepository;
+    private final UserMapper userMapper;
+
+    @Override
+    public List<UserResponse> findAll() {
+        return userRepository.findAll().stream()
+                .map(userMapper::toResponse)
+                .toList();
+    }
+
+    @Override
+    public UserResponse findById(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("User not found: " + id));
+        return userMapper.toResponse(user);
+    }
+
+    @Override
+    @Transactional
+    public UserResponse create(UserRequest request) {
+        User user = userMapper.fromRequest(request);
+        User saved = userRepository.save(user);
+        return userMapper.toResponse(saved);
+    }
+
+    @Override
+    @Transactional
+    public UserResponse update(Long id, UserRequest request) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("User not found: " + id));
+        user.setUsername(request.getUsername());
+        user.setEmail(request.getEmail());
+        User saved = userRepository.save(user);
+        return userMapper.toResponse(saved);
+    }
+
+    @Override
+    @Transactional
+    public void delete(Long id) {
+        if (!userRepository.existsById(id)) {
+            throw new EntityNotFoundException("User not found: " + id);
+        }
+        userRepository.deleteById(id);
+    }
+}
+
+
+Τΰιλ ProjectService.java
+
+package com.bsuir.taskmanager.service;
+
+import com.bsuir.taskmanager.dto.request.ProjectRequest;
+import com.bsuir.taskmanager.dto.response.ProjectResponse;
+import java.util.List;
+
+public interface ProjectService {
+    List<ProjectResponse> findAll();
+
+    ProjectResponse findById(Long id);
+
+    ProjectResponse create(ProjectRequest request);
+
+    ProjectResponse update(Long id, ProjectRequest request);
+
+    void delete(Long id);
+}
+
+
+Τΰιλ TagService.java
+
+package com.bsuir.taskmanager.service;
+
+import com.bsuir.taskmanager.dto.request.TagRequest;
+import com.bsuir.taskmanager.dto.response.TagResponse;
+import java.util.List;
+
+public interface TagService {
+    List<TagResponse> findAll();
+
+    TagResponse findById(Long id);
+
+    TagResponse create(TagRequest request);
+
+    TagResponse update(Long id, TagRequest request);
+
+    void delete(Long id);
+}
+
+
+Τΰιλ TaskService.java
+
+package com.bsuir.taskmanager.service;
+
+import com.bsuir.taskmanager.dto.request.TaskCompositeRequest;
+import com.bsuir.taskmanager.dto.request.TaskRequest;
+import com.bsuir.taskmanager.dto.response.TaskResponse;
+import com.bsuir.taskmanager.model.entity.TaskStatus;
+import java.util.List;
+
+public interface TaskService {
+    List<TaskResponse> findAll();
+
+    List<TaskResponse> findAllWithTags();
+
+    List<TaskResponse> findAllWithComments();
+
+    TaskResponse findById(Long id);
+
+    List<TaskResponse> findByStatus(TaskStatus status);
+
+    TaskResponse create(TaskRequest request);
+
+    TaskResponse createTaskWithTagAndCommentNoTx(TaskCompositeRequest request);
+
+    TaskResponse createTaskWithTagAndCommentTx(TaskCompositeRequest request);
+
+    TaskResponse update(Long id, TaskRequest request);
+
+    void delete(Long id);
+}
+
+
+Τΰιλ UserService.java
+
+package com.bsuir.taskmanager.service;
+
+import com.bsuir.taskmanager.dto.request.UserRequest;
+import com.bsuir.taskmanager.dto.response.UserResponse;
+import java.util.List;
+
+public interface UserService {
+    List<UserResponse> findAll();
+
+    UserResponse findById(Long id);
+
+    UserResponse create(UserRequest request);
+
+    UserResponse update(Long id, UserRequest request);
+
+    void delete(Long id);
+}
+
+
+Τΰιλ CommentController.java
+
+package com.bsuir.taskmanager.controller;
+
+import com.bsuir.taskmanager.dto.request.CommentRequest;
+import com.bsuir.taskmanager.dto.response.CommentResponse;
+import com.bsuir.taskmanager.service.CommentService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import java.util.List;
+import lombok.AllArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@AllArgsConstructor
+@RequestMapping("/api/comments")
+@Tag(name = "Comments", description = "Comment CRUD operations")
+public class CommentController {
+    private final CommentService commentService;
+
+    @GetMapping
+    @Operation(summary = "Get all comments")
+    @ApiResponse(responseCode = "200", description = "Comments returned")
+    public ResponseEntity<List<CommentResponse>> getAll() {
+        return ResponseEntity.ok(commentService.findAll());
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "Get comment by id")
+    @ApiResponse(responseCode = "200", description = "Comment found")
+    @ApiResponse(responseCode = "404", description = "Comment not found")
+    public ResponseEntity<CommentResponse> getById(@PathVariable("id") Long id) {
+        return ResponseEntity.ok(commentService.findById(id));
+    }
+
+    @PostMapping
+    @Operation(summary = "Create comment")
+    @ApiResponse(responseCode = "201", description = "Comment created")
+    @ApiResponse(responseCode = "400", description = "Validation error")
+    public ResponseEntity<CommentResponse> create(@Valid @RequestBody CommentRequest request) {
+        CommentResponse response = commentService.create(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Update comment")
+    @ApiResponse(responseCode = "200", description = "Comment updated")
+    @ApiResponse(responseCode = "400", description = "Validation error")
+    @ApiResponse(responseCode = "404", description = "Comment not found")
+    public ResponseEntity<CommentResponse> update(
+            @PathVariable("id") Long id,
+            @Valid @RequestBody CommentRequest request
+    ) {
+        return ResponseEntity.ok(commentService.update(id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Delete comment")
+    @ApiResponse(responseCode = "204", description = "Comment deleted")
+    @ApiResponse(responseCode = "404", description = "Comment not found")
+    public ResponseEntity<Void> delete(@PathVariable("id") Long id) {
+        commentService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+}
+
+
+Τΰιλ ProjectController.java
+
+package com.bsuir.taskmanager.controller;
+
+import com.bsuir.taskmanager.dto.request.ProjectRequest;
+import com.bsuir.taskmanager.dto.response.ProjectResponse;
+import com.bsuir.taskmanager.service.ProjectService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import java.util.List;
+import lombok.AllArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@AllArgsConstructor
+@RequestMapping("/api/projects")
+@Tag(name = "Projects", description = "Project CRUD operations")
+public class ProjectController {
+    private final ProjectService projectService;
+
+    @GetMapping
+    @Operation(summary = "Get all projects")
+    @ApiResponse(responseCode = "200", description = "Projects returned")
+    public ResponseEntity<List<ProjectResponse>> getAll() {
+        return ResponseEntity.ok(projectService.findAll());
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "Get project by id")
+    @ApiResponse(responseCode = "200", description = "Project found")
+    @ApiResponse(responseCode = "404", description = "Project not found")
+    public ResponseEntity<ProjectResponse> getById(@PathVariable("id") Long id) {
+        return ResponseEntity.ok(projectService.findById(id));
+    }
+
+    @PostMapping
+    @Operation(summary = "Create project")
+    @ApiResponse(responseCode = "201", description = "Project created")
+    @ApiResponse(responseCode = "400", description = "Validation error")
+    public ResponseEntity<ProjectResponse> create(@Valid @RequestBody ProjectRequest request) {
+        ProjectResponse response = projectService.create(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Update project")
+    @ApiResponse(responseCode = "200", description = "Project updated")
+    @ApiResponse(responseCode = "400", description = "Validation error")
+    @ApiResponse(responseCode = "404", description = "Project not found")
+    public ResponseEntity<ProjectResponse> update(
+            @PathVariable("id") Long id,
+            @Valid @RequestBody ProjectRequest request
+    ) {
+        return ResponseEntity.ok(projectService.update(id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Delete project")
+    @ApiResponse(responseCode = "204", description = "Project deleted")
+    @ApiResponse(responseCode = "404", description = "Project not found")
+    public ResponseEntity<Void> delete(@PathVariable("id") Long id) {
+        projectService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+}
+
+
+Τΰιλ TagController.java
+
+package com.bsuir.taskmanager.controller;
+
+import com.bsuir.taskmanager.dto.request.TagRequest;
+import com.bsuir.taskmanager.dto.response.TagResponse;
+import com.bsuir.taskmanager.service.TagService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import jakarta.validation.Valid;
+import java.util.List;
+import lombok.AllArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@AllArgsConstructor
+@RequestMapping("/api/tags")
+@io.swagger.v3.oas.annotations.tags.Tag(name = "Tags", description = "Tag CRUD operations")
+public class TagController {
+    private final TagService tagService;
+
+    @GetMapping
+    @Operation(summary = "Get all tags")
+    @ApiResponse(responseCode = "200", description = "Tags returned")
+    public ResponseEntity<List<TagResponse>> getAll() {
+        return ResponseEntity.ok(tagService.findAll());
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "Get tag by id")
+    @ApiResponse(responseCode = "200", description = "Tag found")
+    @ApiResponse(responseCode = "404", description = "Tag not found")
+    public ResponseEntity<TagResponse> getById(@PathVariable("id") Long id) {
+        return ResponseEntity.ok(tagService.findById(id));
+    }
+
+    @PostMapping
+    @Operation(summary = "Create tag")
+    @ApiResponse(responseCode = "201", description = "Tag created")
+    @ApiResponse(responseCode = "400", description = "Validation error")
+    public ResponseEntity<TagResponse> create(@Valid @RequestBody TagRequest request) {
+        TagResponse response = tagService.create(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Update tag")
+    @ApiResponse(responseCode = "200", description = "Tag updated")
+    @ApiResponse(responseCode = "400", description = "Validation error")
+    @ApiResponse(responseCode = "404", description = "Tag not found")
+    public ResponseEntity<TagResponse> update(
+            @PathVariable("id") Long id,
+            @Valid @RequestBody TagRequest request
+    ) {
+        return ResponseEntity.ok(tagService.update(id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Delete tag")
+    @ApiResponse(responseCode = "204", description = "Tag deleted")
+    @ApiResponse(responseCode = "404", description = "Tag not found")
+    public ResponseEntity<Void> delete(@PathVariable("id") Long id) {
+        tagService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+}
+
+
+Τΰιλ TaskController.java
+
+package com.bsuir.taskmanager.controller;
+
+import com.bsuir.taskmanager.dto.request.TaskCompositeRequest;
+import com.bsuir.taskmanager.dto.request.TaskRequest;
+import com.bsuir.taskmanager.dto.response.TaskResponse;
+import com.bsuir.taskmanager.model.entity.TaskStatus;
+import com.bsuir.taskmanager.service.TaskService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import java.util.List;
+
+import lombok.AllArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@AllArgsConstructor
+@RequestMapping("/api/tasks")
+@Tag(name = "Tasks", description = "Task CRUD operations")
+public class TaskController {
+    private final TaskService taskService;
+
+    @GetMapping
+    @Operation(summary = "Get all tasks", description = "Optional filtering by status")
+    @ApiResponse(responseCode = "200", description = "Tasks returned")
+    public ResponseEntity<List<TaskResponse>> getAll(
+            @Parameter(description = "Task status filter")
+            @RequestParam(name = "status", required = false) TaskStatus status
+    ) {
+        List<TaskResponse> response = status == null
+                ? taskService.findAll()
+                : taskService.findByStatus(status);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/with-tags")
+    @Operation(summary = "Get all tasks with tags")
+    @ApiResponse(responseCode = "200", description = "Tasks returned")
+    public ResponseEntity<List<TaskResponse>> getAllWithTags() {
+        return ResponseEntity.ok(taskService.findAllWithTags());
+    }
+
+    @GetMapping("/with-comments")
+    @Operation(summary = "Get all tasks with comments")
+    @ApiResponse(responseCode = "200", description = "Tasks returned")
+    public ResponseEntity<List<TaskResponse>> getAllWithComments() {
+        return ResponseEntity.ok(taskService.findAllWithComments());
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "Get task by id")
+    @ApiResponse(responseCode = "200", description = "Task found")
+    @ApiResponse(responseCode = "404", description = "Task not found")
+    public ResponseEntity<TaskResponse> getById(@PathVariable("id") Long id) {
+        return ResponseEntity.ok(taskService.findById(id));
+    }
+
+    @PostMapping
+    @Operation(summary = "Create task")
+    @ApiResponse(responseCode = "201", description = "Task created")
+    @ApiResponse(responseCode = "400", description = "Validation error")
+    public ResponseEntity<TaskResponse> create(@Valid @RequestBody TaskRequest request) {
+        TaskResponse response = taskService.create(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/with-tag-and-comment/no-tx")
+    @Operation(summary = "Create task, tag, comment without transaction")
+    @ApiResponse(responseCode = "201", description = "Composite data created")
+    @ApiResponse(responseCode = "400", description = "Validation error")
+    public ResponseEntity<TaskResponse> createTaskWithTagAndCommentNoTx(
+            @Valid @RequestBody TaskCompositeRequest request
+    ) {
+        TaskResponse response = taskService.createTaskWithTagAndCommentNoTx(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/with-tag-and-comment/tx")
+    @Operation(summary = "Create task, tag, comment with transaction")
+    @ApiResponse(responseCode = "201", description = "Composite data created")
+    @ApiResponse(responseCode = "400", description = "Validation error")
+    public ResponseEntity<TaskResponse> createTaskWithTagAndCommentTx(
+            @Valid @RequestBody TaskCompositeRequest request
+    ) {
+        TaskResponse response = taskService.createTaskWithTagAndCommentTx(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Update task")
+    @ApiResponse(responseCode = "200", description = "Task updated")
+    @ApiResponse(responseCode = "400", description = "Validation error")
+    @ApiResponse(responseCode = "404", description = "Task not found")
+    public ResponseEntity<TaskResponse> update(
+            @PathVariable("id") Long id,
+            @Valid @RequestBody TaskRequest request
+    ) {
+        return ResponseEntity.ok(taskService.update(id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Delete task")
+    @ApiResponse(responseCode = "204", description = "Task deleted")
+    @ApiResponse(responseCode = "404", description = "Task not found")
+    public ResponseEntity<Void> delete(@PathVariable("id") Long id) {
+        taskService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+}
+
+
+Τΰιλ UserController.java
+
+package com.bsuir.taskmanager.controller;
+
+import com.bsuir.taskmanager.dto.request.UserRequest;
+import com.bsuir.taskmanager.dto.response.UserResponse;
+import com.bsuir.taskmanager.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import java.util.List;
+import lombok.AllArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@AllArgsConstructor
+@RequestMapping("/api/users")
+@Tag(name = "Users", description = "User CRUD operations")
+public class UserController {
+    private final UserService userService;
+
+    @GetMapping
+    @Operation(summary = "Get all users")
+    @ApiResponse(responseCode = "200", description = "Users returned")
+    public ResponseEntity<List<UserResponse>> getAll() {
+        return ResponseEntity.ok(userService.findAll());
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "Get user by id")
+    @ApiResponse(responseCode = "200", description = "User found")
+    @ApiResponse(responseCode = "404", description = "User not found")
+    public ResponseEntity<UserResponse> getById(@PathVariable("id") Long id) {
+        return ResponseEntity.ok(userService.findById(id));
+    }
+
+    @PostMapping
+    @Operation(summary = "Create user")
+    @ApiResponse(responseCode = "201", description = "User created")
+    @ApiResponse(responseCode = "400", description = "Validation error")
+    public ResponseEntity<UserResponse> create(@Valid @RequestBody UserRequest request) {
+        UserResponse response = userService.create(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Update user")
+    @ApiResponse(responseCode = "200", description = "User updated")
+    @ApiResponse(responseCode = "400", description = "Validation error")
+    @ApiResponse(responseCode = "404", description = "User not found")
+    public ResponseEntity<UserResponse> update(
+            @PathVariable("id") Long id,
+            @Valid @RequestBody UserRequest request
+    ) {
+        return ResponseEntity.ok(userService.update(id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Delete user")
+    @ApiResponse(responseCode = "204", description = "User deleted")
+    @ApiResponse(responseCode = "404", description = "User not found")
+    public ResponseEntity<Void> delete(@PathVariable("id") Long id) {
+        userService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+}
+
+

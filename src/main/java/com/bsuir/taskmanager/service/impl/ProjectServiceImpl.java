@@ -1,7 +1,7 @@
 package com.bsuir.taskmanager.service.impl;
 
-import com.bsuir.taskmanager.dto.request.ProjectRequest;
-import com.bsuir.taskmanager.dto.response.ProjectResponse;
+import com.bsuir.taskmanager.model.dto.request.ProjectRequest;
+import com.bsuir.taskmanager.model.dto.response.ProjectResponse;
 import com.bsuir.taskmanager.mapper.ProjectMapper;
 import com.bsuir.taskmanager.model.entity.Project;
 import com.bsuir.taskmanager.model.entity.User;

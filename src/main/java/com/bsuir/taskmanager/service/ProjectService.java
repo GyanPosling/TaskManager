@@ -1,7 +1,7 @@
 package com.bsuir.taskmanager.service;
 
-import com.bsuir.taskmanager.dto.request.ProjectRequest;
-import com.bsuir.taskmanager.dto.response.ProjectResponse;
+import com.bsuir.taskmanager.model.dto.request.ProjectRequest;
+import com.bsuir.taskmanager.model.dto.response.ProjectResponse;
 import java.util.List;
 
 public interface ProjectService {

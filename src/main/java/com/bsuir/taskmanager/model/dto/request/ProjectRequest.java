@@ -1,6 +1,10 @@
-package com.bsuir.taskmanager.dto.response;
+package com.bsuir.taskmanager.model.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -10,16 +14,18 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ProjectResponse {
-    @Schema(description = "Project id", example = "1")
-    private Long id;
-
+public class ProjectRequest {
     @Schema(description = "Project name", example = "Release Planning")
+    @NotBlank
+    @Size(max = 150)
     private String name;
 
     @Schema(description = "Project description", example = "Plan the Q3 release")
+    @Size(max = 1000)
     private String description;
 
     @Schema(description = "Owner user id", example = "2")
+    @NotNull
+    @Positive
     private Long ownerId;
 }

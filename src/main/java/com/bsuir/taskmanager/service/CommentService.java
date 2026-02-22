@@ -1,7 +1,7 @@
 package com.bsuir.taskmanager.service;
 
-import com.bsuir.taskmanager.dto.request.CommentRequest;
-import com.bsuir.taskmanager.dto.response.CommentResponse;
+import com.bsuir.taskmanager.model.dto.request.CommentRequest;
+import com.bsuir.taskmanager.model.dto.response.CommentResponse;
 import java.util.List;
 
 public interface CommentService {
