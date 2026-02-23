@@ -1,5 +1,7 @@
 package com.bsuir.taskmanager.service.impl;
 
+import com.bsuir.taskmanager.exception.ProjectNotFoundException;
+import com.bsuir.taskmanager.exception.UserNotFoundException;
 import com.bsuir.taskmanager.mapper.ProjectMapper;
 import com.bsuir.taskmanager.model.dto.request.ProjectRequest;
 import com.bsuir.taskmanager.model.dto.response.ProjectResponse;
@@ -8,7 +10,6 @@ import com.bsuir.taskmanager.model.entity.User;
 import com.bsuir.taskmanager.repository.ProjectRepository;
 import com.bsuir.taskmanager.repository.UserRepository;
 import com.bsuir.taskmanager.service.ProjectService;
-import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -32,7 +33,7 @@ public class ProjectServiceImpl implements ProjectService {
     @Override
     public ProjectResponse findById(Long id) {
         Project project = projectRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Project not found: " + id));
+                .orElseThrow(() -> new ProjectNotFoundException("Project not found: " + id));
         return projectMapper.toResponse(project);
     }
 
@@ -49,7 +50,7 @@ public class ProjectServiceImpl implements ProjectService {
     @Transactional
     public ProjectResponse update(Long id, ProjectRequest request) {
         Project project = projectRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Project not found: " + id));
+                .orElseThrow(() -> new ProjectNotFoundException("Project not found: " + id));
         User owner = getOwner(request.getOwnerId());
         project.setName(request.getName());
         project.setDescription(request.getDescription());
@@ -62,13 +63,13 @@ public class ProjectServiceImpl implements ProjectService {
     @Transactional
     public void delete(Long id) {
         if (!projectRepository.existsById(id)) {
-            throw new EntityNotFoundException("Project not found: " + id);
+            throw new ProjectNotFoundException("Project not found: " + id);
         }
         projectRepository.deleteById(id);
     }
 
     private User getOwner(Long ownerId) {
         return userRepository.findById(ownerId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found: " + ownerId));
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + ownerId));
     }
 }

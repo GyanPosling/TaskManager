@@ -1,12 +1,12 @@
 package com.bsuir.taskmanager.service.impl;
 
+import com.bsuir.taskmanager.exception.UserNotFoundException;
 import com.bsuir.taskmanager.mapper.UserMapper;
 import com.bsuir.taskmanager.model.dto.request.UserRequest;
 import com.bsuir.taskmanager.model.dto.response.UserResponse;
 import com.bsuir.taskmanager.model.entity.User;
 import com.bsuir.taskmanager.repository.UserRepository;
 import com.bsuir.taskmanager.service.UserService;
-import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -29,7 +29,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserResponse findById(Long id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("User not found: " + id));
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + id));
         return userMapper.toResponse(user);
     }
 
@@ -45,7 +45,7 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public UserResponse update(Long id, UserRequest request) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("User not found: " + id));
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + id));
         user.setUsername(request.getUsername());
         user.setEmail(request.getEmail());
         User saved = userRepository.save(user);
@@ -56,7 +56,7 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void delete(Long id) {
         if (!userRepository.existsById(id)) {
-            throw new EntityNotFoundException("User not found: " + id);
+            throw new UserNotFoundException("User not found: " + id);
         }
         userRepository.deleteById(id);
     }

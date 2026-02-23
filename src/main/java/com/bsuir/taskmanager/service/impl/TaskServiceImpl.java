@@ -1,5 +1,10 @@
 package com.bsuir.taskmanager.service.impl;
 
+import com.bsuir.taskmanager.exception.FailAfterTaskException;
+import com.bsuir.taskmanager.exception.ProjectNotFoundException;
+import com.bsuir.taskmanager.exception.TagsNotFoundException;
+import com.bsuir.taskmanager.exception.TaskNotFoundException;
+import com.bsuir.taskmanager.exception.UserNotFoundException;
 import com.bsuir.taskmanager.mapper.TaskMapper;
 import com.bsuir.taskmanager.model.dto.request.TaskCompositeRequest;
 import com.bsuir.taskmanager.model.dto.request.TaskRequest;
@@ -16,7 +21,6 @@ import com.bsuir.taskmanager.repository.TagRepository;
 import com.bsuir.taskmanager.repository.TaskRepository;
 import com.bsuir.taskmanager.repository.UserRepository;
 import com.bsuir.taskmanager.service.TaskService;
-import jakarta.persistence.EntityNotFoundException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -54,7 +58,7 @@ public class TaskServiceImpl implements TaskService {
     @Override
     public TaskResponse findById(Long id) {
         Task task = taskRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Task not found: " + id));
+                .orElseThrow(() -> new TaskNotFoundException("Task not found: " + id));
         return taskMapper.toResponse(task);
     }
 
@@ -90,7 +94,7 @@ public class TaskServiceImpl implements TaskService {
     @Transactional
     public TaskResponse update(Long id, TaskRequest request) {
         Task task = taskRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Task not found: " + id));
+                .orElseThrow(() -> new TaskNotFoundException("Task not found: " + id));
         Project project = getProject(request.getProjectId());
         User assignee = getAssignee(request.getAssigneeId());
         Set<Tag> tags = getTags(request.getTagIds());
@@ -109,14 +113,14 @@ public class TaskServiceImpl implements TaskService {
     @Transactional
     public void delete(Long id) {
         if (!taskRepository.existsById(id)) {
-            throw new EntityNotFoundException("Task not found: " + id);
+            throw new TaskNotFoundException("Task not found: " + id);
         }
         taskRepository.deleteById(id);
     }
 
     private Project getProject(Long projectId) {
         return projectRepository.findById(projectId)
-                .orElseThrow(() -> new EntityNotFoundException("Project not found: " + projectId));
+                .orElseThrow(() -> new ProjectNotFoundException("Project not found: " + projectId));
     }
 
     private User getAssignee(Long assigneeId) {
@@ -124,7 +128,7 @@ public class TaskServiceImpl implements TaskService {
             return null;
         }
         return userRepository.findById(assigneeId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found: " + assigneeId));
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + assigneeId));
     }
 
     private Set<Tag> getTags(Set<Long> tagIds) {
@@ -133,14 +137,14 @@ public class TaskServiceImpl implements TaskService {
         }
         List<Tag> tags = tagRepository.findAllById(tagIds);
         if (tags.size() != tagIds.size()) {
-            throw new EntityNotFoundException("Some tags not found");
+            throw new TagsNotFoundException("Some tags not found");
         }
         return new HashSet<>(tags);
     }
 
     private User getCommentAuthor(Long authorId) {
         return userRepository.findById(authorId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found: " + authorId));
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + authorId));
     }
 
     private TaskResponse createCompositeInternal(TaskCompositeRequest request) {
@@ -156,7 +160,7 @@ public class TaskServiceImpl implements TaskService {
         savedTask = taskRepository.save(savedTask);
 
         if (request.isFailAfterTask()) {
-            throw new IllegalStateException("Forced error after saving task and tag");
+            throw new FailAfterTaskException("Forced error after saving task and tag");
         }
 
         User author = getCommentAuthor(request.getCommentAuthorId());

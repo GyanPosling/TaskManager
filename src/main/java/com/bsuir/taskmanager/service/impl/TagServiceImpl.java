@@ -1,12 +1,12 @@
 package com.bsuir.taskmanager.service.impl;
 
+import com.bsuir.taskmanager.exception.TagNotFoundException;
 import com.bsuir.taskmanager.mapper.TagMapper;
 import com.bsuir.taskmanager.model.dto.request.TagRequest;
 import com.bsuir.taskmanager.model.dto.response.TagResponse;
 import com.bsuir.taskmanager.model.entity.Tag;
 import com.bsuir.taskmanager.repository.TagRepository;
 import com.bsuir.taskmanager.service.TagService;
-import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -29,7 +29,7 @@ public class TagServiceImpl implements TagService {
     @Override
     public TagResponse findById(Long id) {
         Tag tag = tagRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Tag not found: " + id));
+                .orElseThrow(() -> new TagNotFoundException("Tag not found: " + id));
         return tagMapper.toResponse(tag);
     }
 
@@ -45,7 +45,7 @@ public class TagServiceImpl implements TagService {
     @Transactional
     public TagResponse update(Long id, TagRequest request) {
         Tag tag = tagRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Tag not found: " + id));
+                .orElseThrow(() -> new TagNotFoundException("Tag not found: " + id));
         tag.setName(request.getName());
         Tag saved = tagRepository.save(tag);
         return tagMapper.toResponse(saved);
@@ -55,7 +55,7 @@ public class TagServiceImpl implements TagService {
     @Transactional
     public void delete(Long id) {
         if (!tagRepository.existsById(id)) {
-            throw new EntityNotFoundException("Tag not found: " + id);
+            throw new TagNotFoundException("Tag not found: " + id);
         }
         tagRepository.deleteById(id);
     }
