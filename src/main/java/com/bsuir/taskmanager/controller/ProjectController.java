@@ -1,8 +1,8 @@
 package com.bsuir.taskmanager.controller;
 
+import com.bsuir.taskmanager.controller.api.ProjectControllerApi;
 import com.bsuir.taskmanager.model.dto.request.ProjectRequest;
 import com.bsuir.taskmanager.model.dto.response.ProjectResponse;
-import com.bsuir.taskmanager.controller.api.ProjectControllerApi;
 import com.bsuir.taskmanager.service.ProjectService;
 import jakarta.validation.Valid;
 import java.util.List;

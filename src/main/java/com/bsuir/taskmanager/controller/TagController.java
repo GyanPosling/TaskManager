@@ -1,8 +1,8 @@
 package com.bsuir.taskmanager.controller;
 
+import com.bsuir.taskmanager.controller.api.TagControllerApi;
 import com.bsuir.taskmanager.model.dto.request.TagRequest;
 import com.bsuir.taskmanager.model.dto.response.TagResponse;
-import com.bsuir.taskmanager.controller.api.TagControllerApi;
 import com.bsuir.taskmanager.service.TagService;
 import jakarta.validation.Valid;
 import java.util.List;

@@ -1,8 +1,8 @@
 package com.bsuir.taskmanager.controller;
 
+import com.bsuir.taskmanager.controller.api.UserControllerApi;
 import com.bsuir.taskmanager.model.dto.request.UserRequest;
 import com.bsuir.taskmanager.model.dto.response.UserResponse;
-import com.bsuir.taskmanager.controller.api.UserControllerApi;
 import com.bsuir.taskmanager.service.UserService;
 import jakarta.validation.Valid;
 import java.util.List;

@@ -1,8 +1,8 @@
 package com.bsuir.taskmanager.controller;
 
+import com.bsuir.taskmanager.controller.api.CommentControllerApi;
 import com.bsuir.taskmanager.model.dto.request.CommentRequest;
 import com.bsuir.taskmanager.model.dto.response.CommentResponse;
-import com.bsuir.taskmanager.controller.api.CommentControllerApi;
 import com.bsuir.taskmanager.service.CommentService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -41,7 +41,10 @@ public class CommentController implements CommentControllerApi {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<CommentResponse> update(@PathVariable Long id, @Valid @RequestBody CommentRequest request) {
+    public ResponseEntity<CommentResponse> update(
+            @PathVariable Long id,
+            @Valid @RequestBody CommentRequest request
+    ) {
         return ResponseEntity.ok(commentService.update(id, request));
     }
 

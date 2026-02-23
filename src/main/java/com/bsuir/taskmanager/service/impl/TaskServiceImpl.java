@@ -1,9 +1,9 @@
 package com.bsuir.taskmanager.service.impl;
 
+import com.bsuir.taskmanager.mapper.TaskMapper;
 import com.bsuir.taskmanager.model.dto.request.TaskCompositeRequest;
 import com.bsuir.taskmanager.model.dto.request.TaskRequest;
 import com.bsuir.taskmanager.model.dto.response.TaskResponse;
-import com.bsuir.taskmanager.mapper.TaskMapper;
 import com.bsuir.taskmanager.model.entity.Comment;
 import com.bsuir.taskmanager.model.entity.Project;
 import com.bsuir.taskmanager.model.entity.Tag;
