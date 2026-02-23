@@ -16,6 +16,8 @@ public interface CommentMapper {
 
     @Mapping(target = "task", source = "task")
     @Mapping(target = "author", source = "author")
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
     Comment fromRequest(CommentRequest request, Task task, User author);
 
     @Mapping(target = "taskId", source = "task.id")

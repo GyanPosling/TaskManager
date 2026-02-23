@@ -13,6 +13,8 @@ public interface ProjectMapper {
     ProjectResponse toResponse(Project project);
 
     @Mapping(target = "owner", source = "owner")
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "tasks", ignore = true)
     Project fromRequest(ProjectRequest request, User owner);
 
     @Mapping(target = "ownerId", source = "owner.id")
