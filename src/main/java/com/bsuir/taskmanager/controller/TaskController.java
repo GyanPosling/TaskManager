@@ -60,25 +60,21 @@ public class TaskController implements TaskControllerApi {
 
     @PostMapping("/with-tag-and-comment/no-tx")
     public ResponseEntity<TaskResponse> createTaskWithTagAndCommentNoTx(
-            @Valid @RequestBody TaskCompositeRequest request
-    ) {
+            @Valid @RequestBody TaskCompositeRequest request) {
         TaskResponse response = taskService.createTaskWithTagAndCommentNoTx(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PostMapping("/with-tag-and-comment/tx")
     public ResponseEntity<TaskResponse> createTaskWithTagAndCommentTx(
-            @Valid @RequestBody TaskCompositeRequest request
-    ) {
+            @Valid @RequestBody TaskCompositeRequest request) {
         TaskResponse response = taskService.createTaskWithTagAndCommentTx(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<TaskResponse> update(
-            @PathVariable("id") Long id,
-            @Valid @RequestBody TaskRequest request
-    ) {
+    public ResponseEntity<TaskResponse> update(@PathVariable("id") Long id,
+                                               @Valid @RequestBody TaskRequest request) {
         return ResponseEntity.ok(taskService.update(id, request));
     }
 

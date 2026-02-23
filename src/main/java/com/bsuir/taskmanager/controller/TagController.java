@@ -41,10 +41,8 @@ public class TagController implements TagControllerApi {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<TagResponse> update(
-            @PathVariable("id") Long id,
-            @Valid @RequestBody TagRequest request
-    ) {
+    public ResponseEntity<TagResponse> update(@PathVariable("id") Long id,
+                                              @Valid @RequestBody TagRequest request) {
         return ResponseEntity.ok(tagService.update(id, request));
     }
 

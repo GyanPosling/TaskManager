@@ -41,10 +41,8 @@ public class ProjectController implements ProjectControllerApi {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ProjectResponse> update(
-            @PathVariable("id") Long id,
-            @Valid @RequestBody ProjectRequest request
-    ) {
+    public ResponseEntity<ProjectResponse> update(@PathVariable("id") Long id,
+                                                  @Valid @RequestBody ProjectRequest request) {
         return ResponseEntity.ok(projectService.update(id, request));
     }
 
