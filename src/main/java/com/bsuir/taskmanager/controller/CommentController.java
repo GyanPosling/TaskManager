@@ -41,8 +41,10 @@ public class CommentController implements CommentControllerApi {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<CommentResponse> update(@PathVariable Long id,
-                                                  @Valid @RequestBody CommentRequest request) {
+    public ResponseEntity<CommentResponse> update(
+            @PathVariable Long id,
+            @Valid @RequestBody CommentRequest request
+    ) {
         return ResponseEntity.ok(commentService.update(id, request));
     }
 
@@ -52,3 +54,4 @@ public class CommentController implements CommentControllerApi {
         return ResponseEntity.noContent().build();
     }
 }
+

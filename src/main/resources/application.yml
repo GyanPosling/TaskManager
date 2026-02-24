@@ -21,3 +21,5 @@ spring:
 logging:
   level:
     liquibase: INFO
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE

@@ -1,5 +1,4 @@
 # Task Manager
-## Bursh Anton 450502
 
 ## Required links:
 ### [SonarCloud analysis](https://sonarcloud.io/summary/new_code?id=GyanPosling_TaskManager&branch=main)
