@@ -25,6 +25,8 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Getter
 @Setter
@@ -46,7 +48,8 @@ public class Task {
     private String description;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(nullable = false, columnDefinition = "task_status")
     private TaskStatus status = TaskStatus.TODO;
 
     private LocalDate dueDate;

@@ -1,0 +1,48 @@
+databaseChangeLog:
+  - changeSet:
+      id: 007-task-status-enum
+      author: bursh
+      changes:
+        - sql:
+            dbms: postgresql
+            splitStatements: false
+            sql: |
+              DO $$
+              BEGIN
+                  CREATE TYPE task_status AS ENUM ('TODO', 'IN_PROGRESS', 'DONE');
+              EXCEPTION
+                  WHEN duplicate_object THEN null;
+              END$$;
+        - sql:
+            dbms: postgresql
+            sql: |
+              UPDATE tasks
+              SET status = CASE
+                  WHEN status IS NULL THEN 'TODO'
+                  WHEN regexp_replace(upper(trim(status)), '[^A-Z]+', '_', 'g') = 'TODO' THEN 'TODO'
+                  WHEN regexp_replace(upper(trim(status)), '[^A-Z]+', '_', 'g') = 'IN_PROGRESS' THEN 'IN_PROGRESS'
+                  WHEN regexp_replace(upper(trim(status)), '[^A-Z]+', '_', 'g') = 'DONE' THEN 'DONE'
+                  ELSE 'TODO'
+              END;
+        - sql:
+            dbms: postgresql
+            sql: |
+              ALTER TABLE tasks
+              ALTER COLUMN status DROP DEFAULT;
+        - sql:
+            dbms: postgresql
+            sql: |
+              ALTER TABLE tasks
+              ALTER COLUMN status TYPE task_status
+              USING (CASE
+                  WHEN status IS NULL THEN 'TODO'
+                  WHEN regexp_replace(upper(trim(status)), '[^A-Z]+', '_', 'g') = 'TODO' THEN 'TODO'
+                  WHEN regexp_replace(upper(trim(status)), '[^A-Z]+', '_', 'g') = 'IN_PROGRESS' THEN 'IN_PROGRESS'
+                  WHEN regexp_replace(upper(trim(status)), '[^A-Z]+', '_', 'g') = 'DONE' THEN 'DONE'
+                  ELSE 'TODO'
+              END)::task_status;
+        - sql:
+            dbms: postgresql
+            sql: |
+              ALTER TABLE tasks
+              ALTER COLUMN status SET DEFAULT 'TODO';
