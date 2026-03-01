@@ -48,7 +48,7 @@ databaseChangeLog:
             baseColumnNames: author_id
             referencedTableName: users
             referencedColumnNames: id
-            onDelete: RESTRICT
+            onDelete: CASCADE
         - createIndex:
             indexName: ix_comments_task_id
             tableName: comments

@@ -33,7 +33,7 @@ databaseChangeLog:
             baseColumnNames: owner_id
             referencedTableName: users
             referencedColumnNames: id
-            onDelete: RESTRICT
+            onDelete: CASCADE
         - createIndex:
             indexName: ix_projects_owner_id
             tableName: projects
