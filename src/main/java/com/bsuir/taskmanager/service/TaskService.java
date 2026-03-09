@@ -4,8 +4,8 @@ import com.bsuir.taskmanager.model.dto.request.TaskCompositeRequest;
 import com.bsuir.taskmanager.model.dto.request.TaskRequest;
 import com.bsuir.taskmanager.model.dto.response.TaskResponse;
 import com.bsuir.taskmanager.model.entity.TaskStatus;
-import java.util.List;
 import java.time.LocalDate;
+import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -20,9 +20,17 @@ public interface TaskService {
 
     List<TaskResponse> findByStatus(TaskStatus status);
 
-    Page<TaskResponse> findByProjectOwnerAndStatus(Long ownerId, TaskStatus status, Pageable pageable);
+    Page<TaskResponse> findByProjectOwnerAndStatus(
+            Long ownerId,
+            TaskStatus status,
+            Pageable pageable
+    );
 
-    Page<TaskResponse> findByTagNameAndDueDate(String tagName, LocalDate dueDate, Pageable pageable);
+    Page<TaskResponse> findByTagNameAndDueDate(
+            String tagName,
+            LocalDate dueDate,
+            Pageable pageable
+    );
 
     TaskResponse create(TaskRequest request);
 

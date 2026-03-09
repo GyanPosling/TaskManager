@@ -14,9 +14,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -76,7 +76,9 @@ public class TaskController implements TaskControllerApi {
     @GetMapping("/search/by-tag")
     public ResponseEntity<Page<TaskResponse>> getByTagAndDueDate(
             @RequestParam("tagName") String tagName,
-            @RequestParam("dueDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dueDate,
+            @RequestParam("dueDate")
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate dueDate,
             @PageableDefault(sort = "id") Pageable pageable
     ) {
         return ResponseEntity.ok(taskService.findByTagNameAndDueDate(
@@ -101,7 +103,8 @@ public class TaskController implements TaskControllerApi {
 
     @PostMapping("/with-tag-and-comment/tx")
     public ResponseEntity<TaskResponse> createTaskWithTagAndCommentTx(
-            @Valid @RequestBody TaskCompositeRequest request) {
+            @Valid @RequestBody TaskCompositeRequest request
+    ) {
         TaskResponse response = taskService.createTaskWithTagAndCommentTx(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }

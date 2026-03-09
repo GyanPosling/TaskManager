@@ -74,7 +74,11 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public Page<TaskResponse> findByProjectOwnerAndStatus(Long ownerId, TaskStatus status, Pageable pageable) {
+    public Page<TaskResponse> findByProjectOwnerAndStatus(
+            Long ownerId,
+            TaskStatus status,
+            Pageable pageable
+    ) {
         CacheKey cacheKey = new CacheKey(
                 Task.class,
                 "findByProjectOwnerAndStatus",
@@ -88,14 +92,19 @@ public class TaskServiceImpl implements TaskService {
         if (cachedPage != null) {
             return cachedPage;
         }
-        Page<TaskResponse> responsePage = taskRepository.findByProjectOwnerIdAndStatus(ownerId, status, pageable)
+        Page<TaskResponse> responsePage = taskRepository
+                .findByProjectOwnerIdAndStatus(ownerId, status, pageable)
                 .map(taskMapper::toResponse);
         taskSearchCache.put(cacheKey, responsePage);
         return responsePage;
     }
 
     @Override
-    public Page<TaskResponse> findByTagNameAndDueDate(String tagName, LocalDate dueDate, Pageable pageable) {
+    public Page<TaskResponse> findByTagNameAndDueDate(
+            String tagName,
+            LocalDate dueDate,
+            Pageable pageable
+    ) {
         CacheKey cacheKey = new CacheKey(
                 Task.class,
                 "findByTagNameAndDueDate",
@@ -106,10 +115,11 @@ public class TaskServiceImpl implements TaskService {
                 pageable.getSort().toString()
         );
         Page<TaskResponse> cachedPage = taskSearchCache.get(cacheKey);
-        if (cachedPage != null) {   
+        if (cachedPage != null) {
             return cachedPage;
         }
-        Page<TaskResponse> responsePage = taskRepository.findByTagNameAndDueDateBeforeEqual(tagName, dueDate, pageable)
+        Page<TaskResponse> responsePage = taskRepository
+                .findByTagNameAndDueDateBeforeEqual(tagName, dueDate, pageable)
                 .map(taskMapper::toResponse);
         taskSearchCache.put(cacheKey, responsePage);
         return responsePage;
