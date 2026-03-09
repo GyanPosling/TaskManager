@@ -7,10 +7,16 @@ import com.bsuir.taskmanager.model.dto.response.TaskResponse;
 import com.bsuir.taskmanager.model.entity.TaskStatus;
 import com.bsuir.taskmanager.service.TaskService;
 import jakarta.validation.Valid;
+import java.time.LocalDate;
 import java.util.List;
 import lombok.AllArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -25,6 +31,8 @@ import org.springframework.web.bind.annotation.RestController;
 @AllArgsConstructor
 @RequestMapping("/api/tasks")
 public class TaskController implements TaskControllerApi {
+    private static final int MAX_PAGE_SIZE = 10;
+
     private final TaskService taskService;
 
     @GetMapping
@@ -50,6 +58,32 @@ public class TaskController implements TaskControllerApi {
     @GetMapping("/{id}")
     public ResponseEntity<TaskResponse> getById(@PathVariable("id") Long id) {
         return ResponseEntity.ok(taskService.findById(id));
+    }
+
+    @GetMapping("/search/by-project-owner")
+    public ResponseEntity<Page<TaskResponse>> getByProjectOwnerAndStatus(
+            @RequestParam("ownerId") Long ownerId,
+            @RequestParam("status") TaskStatus status,
+            @PageableDefault(sort = "id") Pageable pageable
+    ) {
+        return ResponseEntity.ok(taskService.findByProjectOwnerAndStatus(
+                ownerId,
+                status,
+                limitPageSize(pageable)
+        ));
+    }
+
+    @GetMapping("/search/by-tag")
+    public ResponseEntity<Page<TaskResponse>> getByTagAndDueDate(
+            @RequestParam("tagName") String tagName,
+            @RequestParam("dueDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dueDate,
+            @PageableDefault(sort = "id") Pageable pageable
+    ) {
+        return ResponseEntity.ok(taskService.findByTagNameAndDueDate(
+                tagName,
+                dueDate,
+                limitPageSize(pageable)
+        ));
     }
 
     @PostMapping
@@ -82,5 +116,13 @@ public class TaskController implements TaskControllerApi {
     public ResponseEntity<Void> delete(@PathVariable("id") Long id) {
         taskService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    private Pageable limitPageSize(Pageable pageable) {
+        return PageRequest.of(
+                pageable.getPageNumber(),
+                Math.min(pageable.getPageSize(), MAX_PAGE_SIZE),
+                pageable.getSort()
+        );
     }
 }

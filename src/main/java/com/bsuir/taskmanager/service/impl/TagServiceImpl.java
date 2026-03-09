@@ -1,5 +1,6 @@
 package com.bsuir.taskmanager.service.impl;
 
+import com.bsuir.taskmanager.cache.TaskSearchCache;
 import com.bsuir.taskmanager.exception.TagNotFoundException;
 import com.bsuir.taskmanager.mapper.TagMapper;
 import com.bsuir.taskmanager.model.dto.request.TagRequest;
@@ -18,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class TagServiceImpl implements TagService {
     private final TagRepository tagRepository;
     private final TagMapper tagMapper;
+    private final TaskSearchCache taskSearchCache;
 
     @Override
     public List<TagResponse> findAll() {
@@ -38,6 +40,7 @@ public class TagServiceImpl implements TagService {
     public TagResponse create(TagRequest request) {
         Tag tag = tagMapper.fromRequest(request);
         Tag saved = tagRepository.save(tag);
+        taskSearchCache.clear();
         return tagMapper.toResponse(saved);
     }
 
@@ -48,6 +51,7 @@ public class TagServiceImpl implements TagService {
                 .orElseThrow(() -> new TagNotFoundException("Tag not found: " + id));
         tag.setName(request.getName());
         Tag saved = tagRepository.save(tag);
+        taskSearchCache.clear();
         return tagMapper.toResponse(saved);
     }
 
@@ -58,5 +62,6 @@ public class TagServiceImpl implements TagService {
             throw new TagNotFoundException("Tag not found: " + id);
         }
         tagRepository.deleteById(id);
+        taskSearchCache.clear();
     }
 }

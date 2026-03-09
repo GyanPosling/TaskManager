@@ -1,5 +1,6 @@
 package com.bsuir.taskmanager.service.impl;
 
+import com.bsuir.taskmanager.cache.TaskSearchCache;
 import com.bsuir.taskmanager.exception.ProjectNotFoundException;
 import com.bsuir.taskmanager.exception.UserNotFoundException;
 import com.bsuir.taskmanager.mapper.ProjectMapper;
@@ -22,6 +23,7 @@ public class ProjectServiceImpl implements ProjectService {
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
     private final ProjectMapper projectMapper;
+    private final TaskSearchCache taskSearchCache;
 
     @Override
     public List<ProjectResponse> findAll() {
@@ -43,6 +45,7 @@ public class ProjectServiceImpl implements ProjectService {
         User owner = getOwner(request.getOwnerId());
         Project project = projectMapper.fromRequest(request, owner);
         Project saved = projectRepository.save(project);
+        taskSearchCache.clear();
         return projectMapper.toResponse(saved);
     }
 
@@ -56,6 +59,7 @@ public class ProjectServiceImpl implements ProjectService {
         project.setDescription(request.getDescription());
         project.setOwner(owner);
         Project saved = projectRepository.save(project);
+        taskSearchCache.clear();
         return projectMapper.toResponse(saved);
     }
 
@@ -66,6 +70,7 @@ public class ProjectServiceImpl implements ProjectService {
             throw new ProjectNotFoundException("Project not found: " + id);
         }
         projectRepository.deleteById(id);
+        taskSearchCache.clear();
     }
 
     private User getOwner(Long ownerId) {

@@ -4,11 +4,14 @@ import com.bsuir.taskmanager.model.dto.request.TaskCompositeRequest;
 import com.bsuir.taskmanager.model.dto.request.TaskRequest;
 import com.bsuir.taskmanager.model.dto.response.TaskResponse;
 import com.bsuir.taskmanager.model.entity.TaskStatus;
+import java.time.LocalDate;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 
 @Tag(name = "Tasks", description = "Task CRUD operations")
@@ -31,6 +34,22 @@ public interface TaskControllerApi {
     @ApiResponse(responseCode = "200", description = "Task found")
     @ApiResponse(responseCode = "404", description = "Task not found")
     ResponseEntity<TaskResponse> getById(Long id);
+
+    @Operation(summary = "Find tasks by project owner and status using JPQL")
+    @ApiResponse(responseCode = "200", description = "Tasks returned")
+    ResponseEntity<Page<TaskResponse>> getByProjectOwnerAndStatus(
+            @Parameter(description = "Project owner id") Long ownerId,
+            @Parameter(description = "Task status") TaskStatus status,
+            Pageable pageable
+    );
+
+    @Operation(summary = "Find tasks by tag and due date using native query")
+    @ApiResponse(responseCode = "200", description = "Tasks returned")
+    ResponseEntity<Page<TaskResponse>> getByTagAndDueDate(
+            @Parameter(description = "Tag name") String tagName,
+            @Parameter(description = "Latest allowed due date") LocalDate dueDate,
+            Pageable pageable
+    );
 
     @Operation(summary = "Create task")
     @ApiResponse(responseCode = "201", description = "Task created")

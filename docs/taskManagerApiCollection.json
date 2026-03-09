@@ -324,6 +324,74 @@
           }
         },
         {
+          "name": "Search tasks by project owner and status (JPQL)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/search/by-project-owner?ownerId=1&status=TODO&page=0&size=2&sort=id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tasks", "search", "by-project-owner"],
+              "query": [
+                {
+                  "key": "ownerId",
+                  "value": "1"
+                },
+                {
+                  "key": "status",
+                  "value": "TODO"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "2"
+                },
+                {
+                  "key": "sort",
+                  "value": "id"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search tasks by tag and due date (native)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/search/by-tag?tagName=backend&dueDate=2026-12-31&page=0&size=2&sort=id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tasks", "search", "by-tag"],
+              "query": [
+                {
+                  "key": "tagName",
+                  "value": "backend"
+                },
+                {
+                  "key": "dueDate",
+                  "value": "2026-12-31"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "2"
+                },
+                {
+                  "key": "sort",
+                  "value": "id"
+                }
+              ]
+            }
+          }
+        },
+        {
           "name": "Create task",
           "request": {
             "method": "POST",
