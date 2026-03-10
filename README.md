@@ -25,3 +25,7 @@ This is a Java Spring Boot REST API for managing tasks in a simple task manageme
 - Maximum page size for the new paginated task search endpoints is limited to `10`
 - Repeated identical task search requests are served from an in-memory cache
 - Cache is cleared after task, project, or tag updates
+
+## Helpers
+- Swagger link - http://localhost:8080/swagger-ui/index.html
+- Checkstyle command - sh mvnw checkstyle:check

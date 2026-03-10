@@ -1,5 +1,6 @@
 package com.bsuir.taskmanager.service.impl;
 
+import com.bsuir.taskmanager.exception.EmailAlreadyExistsException;
 import com.bsuir.taskmanager.exception.UserNotFoundException;
 import com.bsuir.taskmanager.mapper.UserMapper;
 import com.bsuir.taskmanager.model.dto.request.UserRequest;
@@ -36,6 +37,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserResponse create(UserRequest request) {
+        validateEmailUniqueness(request.getEmail(), null);
         User user = userMapper.fromRequest(request);
         User saved = userRepository.save(user);
         return userMapper.toResponse(saved);
@@ -46,6 +48,7 @@ public class UserServiceImpl implements UserService {
     public UserResponse update(Long id, UserRequest request) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("User not found: " + id));
+        validateEmailUniqueness(request.getEmail(), id);
         user.setUsername(request.getUsername());
         user.setEmail(request.getEmail());
         User saved = userRepository.save(user);
@@ -59,5 +62,14 @@ public class UserServiceImpl implements UserService {
             throw new UserNotFoundException("User not found: " + id);
         }
         userRepository.deleteById(id);
+    }
+
+    private void validateEmailUniqueness(String email, Long userId) {
+        boolean emailExists = userId == null
+                ? userRepository.existsByEmail(email)
+                : userRepository.existsByEmailAndIdNot(email, userId);
+        if (emailExists) {
+            throw new EmailAlreadyExistsException("Email already exists: " + email);
+        }
     }
 }

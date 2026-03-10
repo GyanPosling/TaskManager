@@ -5,6 +5,8 @@ import com.bsuir.taskmanager.model.dto.response.ProjectResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 
@@ -12,26 +14,33 @@ import org.springframework.http.ResponseEntity;
 public interface ProjectControllerApi {
     @Operation(summary = "Get all projects")
     @ApiResponse(responseCode = "200", description = "Projects returned")
+    @InternalServerErrorApiResponse
     ResponseEntity<List<ProjectResponse>> getAll();
 
     @Operation(summary = "Get project by id")
     @ApiResponse(responseCode = "200", description = "Project found")
-    @ApiResponse(responseCode = "404", description = "Project not found")
-    ResponseEntity<ProjectResponse> getById(Long id);
+    @BadRequestApiResponse
+    @NotFoundApiResponse
+    @InternalServerErrorApiResponse
+    ResponseEntity<ProjectResponse> getById(@Positive Long id);
 
     @Operation(summary = "Create project")
     @ApiResponse(responseCode = "201", description = "Project created")
-    @ApiResponse(responseCode = "400", description = "Validation error")
-    ResponseEntity<ProjectResponse> create(ProjectRequest request);
+    @BadRequestApiResponse
+    @InternalServerErrorApiResponse
+    ResponseEntity<ProjectResponse> create(@Valid ProjectRequest request);
 
     @Operation(summary = "Update project")
     @ApiResponse(responseCode = "200", description = "Project updated")
-    @ApiResponse(responseCode = "400", description = "Validation error")
-    @ApiResponse(responseCode = "404", description = "Project not found")
-    ResponseEntity<ProjectResponse> update(Long id, ProjectRequest request);
+    @BadRequestApiResponse
+    @NotFoundApiResponse
+    @InternalServerErrorApiResponse
+    ResponseEntity<ProjectResponse> update(@Positive Long id, @Valid ProjectRequest request);
 
     @Operation(summary = "Delete project")
     @ApiResponse(responseCode = "204", description = "Project deleted")
-    @ApiResponse(responseCode = "404", description = "Project not found")
-    ResponseEntity<Void> delete(Long id);
+    @BadRequestApiResponse
+    @NotFoundApiResponse
+    @InternalServerErrorApiResponse
+    ResponseEntity<Void> delete(@Positive Long id);
 }

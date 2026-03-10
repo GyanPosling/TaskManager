@@ -18,8 +18,3 @@ spring:
   docker:
     compose:
       enabled: ${DOCKER_COMPOSE_ENABLED}
-logging:
-  level:
-    liquibase: INFO
-    org.hibernate.SQL: DEBUG
-    org.hibernate.orm.jdbc.bind: TRACE

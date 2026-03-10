@@ -8,6 +8,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Positive;
 import java.time.LocalDate;
 import java.util.List;
 import org.springframework.data.domain.Page;
@@ -18,62 +21,81 @@ import org.springframework.http.ResponseEntity;
 public interface TaskControllerApi {
     @Operation(summary = "Get all tasks", description = "Optional filtering by status")
     @ApiResponse(responseCode = "200", description = "Tasks returned")
+    @InternalServerErrorApiResponse
     ResponseEntity<List<TaskResponse>> getAll(
             @Parameter(description = "Task status filter") TaskStatus status
     );
 
     @Operation(summary = "Get all tasks with tags")
     @ApiResponse(responseCode = "200", description = "Tasks returned")
+    @InternalServerErrorApiResponse
     ResponseEntity<List<TaskResponse>> getAllWithTags();
 
     @Operation(summary = "Get all tasks with comments")
     @ApiResponse(responseCode = "200", description = "Tasks returned")
+    @InternalServerErrorApiResponse
     ResponseEntity<List<TaskResponse>> getAllWithComments();
 
     @Operation(summary = "Get task by id")
     @ApiResponse(responseCode = "200", description = "Task found")
-    @ApiResponse(responseCode = "404", description = "Task not found")
-    ResponseEntity<TaskResponse> getById(Long id);
+    @BadRequestApiResponse
+    @NotFoundApiResponse
+    @InternalServerErrorApiResponse
+    ResponseEntity<TaskResponse> getById(@Positive Long id);
 
     @Operation(summary = "Find tasks by project owner and status using JPQL")
     @ApiResponse(responseCode = "200", description = "Tasks returned")
+    @BadRequestApiResponse
+    @InternalServerErrorApiResponse
     ResponseEntity<Page<TaskResponse>> getByProjectOwnerAndStatus(
-            @Parameter(description = "Project owner id") Long ownerId,
+            @Parameter(description = "Project owner id") @Positive Long ownerId,
             @Parameter(description = "Task status") TaskStatus status,
             Pageable pageable
     );
 
     @Operation(summary = "Find tasks by tag and due date using native query")
     @ApiResponse(responseCode = "200", description = "Tasks returned")
+    @BadRequestApiResponse
+    @InternalServerErrorApiResponse
     ResponseEntity<Page<TaskResponse>> getByTagAndDueDate(
-            @Parameter(description = "Tag name") String tagName,
+            @Parameter(description = "Tag name") @NotBlank String tagName,
             @Parameter(description = "Latest allowed due date") LocalDate dueDate,
             Pageable pageable
     );
 
     @Operation(summary = "Create task")
     @ApiResponse(responseCode = "201", description = "Task created")
-    @ApiResponse(responseCode = "400", description = "Validation error")
-    ResponseEntity<TaskResponse> create(TaskRequest request);
+    @BadRequestApiResponse
+    @InternalServerErrorApiResponse
+    ResponseEntity<TaskResponse> create(@Valid TaskRequest request);
 
     @Operation(summary = "Create task, tag, comment without transaction")
     @ApiResponse(responseCode = "201", description = "Composite data created")
-    @ApiResponse(responseCode = "400", description = "Validation error")
-    ResponseEntity<TaskResponse> createTaskWithTagAndCommentNoTx(TaskCompositeRequest request);
+    @BadRequestApiResponse
+    @InternalServerErrorApiResponse
+    ResponseEntity<TaskResponse> createTaskWithTagAndCommentNoTx(
+            @Valid TaskCompositeRequest request
+    );
 
     @Operation(summary = "Create task, tag, comment with transaction")
     @ApiResponse(responseCode = "201", description = "Composite data created")
-    @ApiResponse(responseCode = "400", description = "Validation error")
-    ResponseEntity<TaskResponse> createTaskWithTagAndCommentTx(TaskCompositeRequest request);
+    @BadRequestApiResponse
+    @InternalServerErrorApiResponse
+    ResponseEntity<TaskResponse> createTaskWithTagAndCommentTx(
+            @Valid TaskCompositeRequest request
+    );
 
     @Operation(summary = "Update task")
     @ApiResponse(responseCode = "200", description = "Task updated")
-    @ApiResponse(responseCode = "400", description = "Validation error")
-    @ApiResponse(responseCode = "404", description = "Task not found")
-    ResponseEntity<TaskResponse> update(Long id, TaskRequest request);
+    @BadRequestApiResponse
+    @NotFoundApiResponse
+    @InternalServerErrorApiResponse
+    ResponseEntity<TaskResponse> update(@Positive Long id, @Valid TaskRequest request);
 
     @Operation(summary = "Delete task")
     @ApiResponse(responseCode = "204", description = "Task deleted")
-    @ApiResponse(responseCode = "404", description = "Task not found")
-    ResponseEntity<Void> delete(Long id);
+    @BadRequestApiResponse
+    @NotFoundApiResponse
+    @InternalServerErrorApiResponse
+    ResponseEntity<Void> delete(@Positive Long id);
 }
