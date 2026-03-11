@@ -41,6 +41,20 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     );
 
     @Query(
+            value = "select distinct t from Task t "
+                    + "join t.tags tg "
+                    + "where tg.name = :tagName and t.dueDate <= :dueDate",
+            countQuery = "select count(distinct t) from Task t "
+                    + "join t.tags tg "
+                    + "where tg.name = :tagName and t.dueDate <= :dueDate"
+    )
+    Page<Task> findByTagNameAndDueDateBeforeEqualJpql(
+            @Param("tagName") String tagName,
+            @Param("dueDate") java.time.LocalDate dueDate,
+            Pageable pageable
+    );
+
+    @Query(
             value = "select distinct t.* from tasks t "
                     + "join task_tags tt on tt.task_id = t.id "
                     + "join tags tg on tg.id = tt.tag_id "
@@ -51,10 +65,9 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
                     + "where tg.name = :tagName and t.due_date <= :dueDate",
             nativeQuery = true
     )
-    Page<Task> findByTagNameAndDueDateBeforeEqual(
+    Page<Task> findByTagNameAndDueDateBeforeEqualNative(
             @Param("tagName") String tagName,
             @Param("dueDate") java.time.LocalDate dueDate,
             Pageable pageable
     );
 }
-

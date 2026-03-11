@@ -26,7 +26,13 @@ public interface TaskService {
             Pageable pageable
     );
 
-    Page<TaskResponse> findByTagNameAndDueDate(
+    Page<TaskResponse> findByTagNameAndDueDateJpql(
+            String tagName,
+            LocalDate dueDate,
+            Pageable pageable
+    );
+
+    Page<TaskResponse> findByTagNameAndDueDateNative(
             String tagName,
             LocalDate dueDate,
             Pageable pageable

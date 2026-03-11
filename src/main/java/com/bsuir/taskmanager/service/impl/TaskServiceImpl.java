@@ -1,7 +1,7 @@
 package com.bsuir.taskmanager.service.impl;
 
-import com.bsuir.taskmanager.cache.CacheKey;
 import com.bsuir.taskmanager.cache.TaskSearchCache;
+import com.bsuir.taskmanager.cache.TaskSearchQueryKey;
 import com.bsuir.taskmanager.exception.FailAfterTaskException;
 import com.bsuir.taskmanager.exception.ProjectNotFoundException;
 import com.bsuir.taskmanager.exception.TagsNotFoundException;
@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -35,9 +36,17 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Slf4j
 @Transactional(readOnly = true)
 @AllArgsConstructor
 public class TaskServiceImpl implements TaskService {
+    private static final String TASK_SEARCH_CACHE_HIT_LOG =
+            "Task search cache hit: queryType={}, "
+                    + "tagName={}, dueDate={}, page={}, size={}, sort={}";
+    private static final String TASK_SEARCH_CACHE_MISS_LOG =
+            "Task search cache miss: queryType={}, "
+                    + "tagName={}, dueDate={}, page={}, size={}, sort={}";
+
     private final TaskRepository taskRepository;
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
@@ -79,16 +88,12 @@ public class TaskServiceImpl implements TaskService {
             TaskStatus status,
             Pageable pageable
     ) {
-        CacheKey cacheKey = new CacheKey(
-                Task.class,
-                "findByProjectOwnerAndStatus",
+        TaskSearchQueryKey cacheKey = TaskSearchQueryKey.forProjectOwnerAndStatus(
                 ownerId,
                 status,
-                pageable.getPageNumber(),
-                pageable.getPageSize(),
-                pageable.getSort().toString()
+                pageable
         );
-        Page<TaskResponse> cachedPage = taskSearchCache.get(cacheKey);
+        Page<TaskResponse> cachedPage = taskSearchCache.get(cacheKey).orElse(null);
         if (cachedPage != null) {
             return cachedPage;
         }
@@ -100,29 +105,35 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public Page<TaskResponse> findByTagNameAndDueDate(
+    public Page<TaskResponse> findByTagNameAndDueDateJpql(
             String tagName,
             LocalDate dueDate,
             Pageable pageable
     ) {
-        CacheKey cacheKey = new CacheKey(
-                Task.class,
-                "findByTagNameAndDueDate",
-                tagName,
-                dueDate,
-                pageable.getPageNumber(),
-                pageable.getPageSize(),
-                pageable.getSort().toString()
+        return findByTagNameAndDueDate(
+                TaskSearchQueryKey.forTagAndDueDateJpql(tagName, dueDate, pageable),
+                () -> taskRepository.findByTagNameAndDueDateBeforeEqualJpql(
+                        tagName,
+                        dueDate,
+                        pageable
+                )
         );
-        Page<TaskResponse> cachedPage = taskSearchCache.get(cacheKey);
-        if (cachedPage != null) {
-            return cachedPage;
-        }
-        Page<TaskResponse> responsePage = taskRepository
-                .findByTagNameAndDueDateBeforeEqual(tagName, dueDate, pageable)
-                .map(taskMapper::toResponse);
-        taskSearchCache.put(cacheKey, responsePage);
-        return responsePage;
+    }
+
+    @Override
+    public Page<TaskResponse> findByTagNameAndDueDateNative(
+            String tagName,
+            LocalDate dueDate,
+            Pageable pageable
+    ) {
+        return findByTagNameAndDueDate(
+                TaskSearchQueryKey.forTagAndDueDateNative(tagName, dueDate, pageable),
+                () -> taskRepository.findByTagNameAndDueDateBeforeEqualNative(
+                        tagName,
+                        dueDate,
+                        pageable
+                )
+        );
     }
 
     @Override
@@ -208,6 +219,37 @@ public class TaskServiceImpl implements TaskService {
                 .orElseThrow(() -> new UserNotFoundException("User not found: " + authorId));
     }
 
+    private Page<TaskResponse> findByTagNameAndDueDate(
+            TaskSearchQueryKey cacheKey,
+            TaskPageSupplier taskPageSupplier
+    ) {
+        Page<TaskResponse> cachedPage = taskSearchCache.get(cacheKey).orElse(null);
+        if (cachedPage != null) {
+            log.info(
+                    TASK_SEARCH_CACHE_HIT_LOG,
+                    cacheKey.queryType(),
+                    cacheKey.tagName(),
+                    cacheKey.dueDate(),
+                    cacheKey.pageNumber(),
+                    cacheKey.pageSize(),
+                    cacheKey.sort()
+            );
+            return cachedPage;
+        }
+        log.info(
+                TASK_SEARCH_CACHE_MISS_LOG,
+                cacheKey.queryType(),
+                cacheKey.tagName(),
+                cacheKey.dueDate(),
+                cacheKey.pageNumber(),
+                cacheKey.pageSize(),
+                cacheKey.sort()
+        );
+        Page<TaskResponse> responsePage = taskPageSupplier.get().map(taskMapper::toResponse);
+        taskSearchCache.put(cacheKey, responsePage);
+        return responsePage;
+    }
+
     private TaskResponse createCompositeInternal(TaskCompositeRequest request) {
         Project project = getProject(request.getProjectId());
         User assignee = getAssignee(request.getAssigneeId());
@@ -242,5 +284,10 @@ public class TaskServiceImpl implements TaskService {
 
     private void invalidateSearchCache() {
         taskSearchCache.clear();
+    }
+
+    @FunctionalInterface
+    private interface TaskPageSupplier {
+        Page<Task> get();
     }
 }

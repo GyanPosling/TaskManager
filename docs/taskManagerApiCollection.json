@@ -358,14 +358,48 @@
           }
         },
         {
+          "name": "Search tasks by tag and due date (JPQL)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/search/by-tag/jpql?tagName=backend&dueDate=2026-12-31&page=0&size=2&sort=id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tasks", "search", "by-tag", "jpql"],
+              "query": [
+                {
+                  "key": "tagName",
+                  "value": "backend"
+                },
+                {
+                  "key": "dueDate",
+                  "value": "2026-12-31"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "2"
+                },
+                {
+                  "key": "sort",
+                  "value": "id"
+                }
+              ]
+            }
+          }
+        },
+        {
           "name": "Search tasks by tag and due date (native)",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/tasks/search/by-tag?tagName=backend&dueDate=2026-12-31&page=0&size=2&sort=id",
+              "raw": "{{baseUrl}}/api/tasks/search/by-tag/native?tagName=backend&dueDate=2026-12-31&page=0&size=2&sort=id",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "tasks", "search", "by-tag"],
+              "path": ["api", "tasks", "search", "by-tag", "native"],
               "query": [
                 {
                   "key": "tagName",

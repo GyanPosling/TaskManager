@@ -53,11 +53,21 @@ public interface TaskControllerApi {
             Pageable pageable
     );
 
+    @Operation(summary = "Find tasks by tag and due date using JPQL")
+    @ApiResponse(responseCode = "200", description = "Tasks returned")
+    @BadRequestApiResponse
+    @InternalServerErrorApiResponse
+    ResponseEntity<Page<TaskResponse>> getByTagAndDueDateJpql(
+            @Parameter(description = "Tag name") @NotBlank String tagName,
+            @Parameter(description = "Latest allowed due date") LocalDate dueDate,
+            Pageable pageable
+    );
+
     @Operation(summary = "Find tasks by tag and due date using native query")
     @ApiResponse(responseCode = "200", description = "Tasks returned")
     @BadRequestApiResponse
     @InternalServerErrorApiResponse
-    ResponseEntity<Page<TaskResponse>> getByTagAndDueDate(
+    ResponseEntity<Page<TaskResponse>> getByTagAndDueDateNative(
             @Parameter(description = "Tag name") @NotBlank String tagName,
             @Parameter(description = "Latest allowed due date") LocalDate dueDate,
             Pageable pageable

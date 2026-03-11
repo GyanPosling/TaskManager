@@ -74,15 +74,30 @@ public class TaskController implements TaskControllerApi {
         ));
     }
 
-    @GetMapping("/search/by-tag")
-    public ResponseEntity<Page<TaskResponse>> getByTagAndDueDate(
+    @GetMapping("/search/by-tag/jpql")
+    public ResponseEntity<Page<TaskResponse>> getByTagAndDueDateJpql(
             @RequestParam("tagName") String tagName,
             @RequestParam("dueDate")
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
             LocalDate dueDate,
             @PageableDefault(sort = "id") Pageable pageable
     ) {
-        return ResponseEntity.ok(taskService.findByTagNameAndDueDate(
+        return ResponseEntity.ok(taskService.findByTagNameAndDueDateJpql(
+                tagName,
+                dueDate,
+                limitPageSize(pageable)
+        ));
+    }
+
+    @GetMapping("/search/by-tag/native")
+    public ResponseEntity<Page<TaskResponse>> getByTagAndDueDateNative(
+            @RequestParam("tagName") String tagName,
+            @RequestParam("dueDate")
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate dueDate,
+            @PageableDefault(sort = "id") Pageable pageable
+    ) {
+        return ResponseEntity.ok(taskService.findByTagNameAndDueDateNative(
                 tagName,
                 dueDate,
                 limitPageSize(pageable)
