@@ -1,6 +1,5 @@
 package com.bsuir.taskmanager.service;
 
-import com.bsuir.taskmanager.model.dto.request.TaskCompositeRequest;
 import com.bsuir.taskmanager.model.dto.request.TaskRequest;
 import com.bsuir.taskmanager.model.dto.response.TaskResponse;
 import com.bsuir.taskmanager.model.entity.TaskStatus;
@@ -40,9 +39,9 @@ public interface TaskService {
 
     TaskResponse create(TaskRequest request);
 
-    TaskResponse createTaskWithTagAndCommentNoTx(TaskCompositeRequest request);
+    List<TaskResponse> createBulkNoTx(List<TaskRequest> requests, Integer failAfterIndex);
 
-    TaskResponse createTaskWithTagAndCommentTx(TaskCompositeRequest request);
+    List<TaskResponse> createBulkTx(List<TaskRequest> requests, Integer failAfterIndex);
 
     TaskResponse update(Long id, TaskRequest request);
 

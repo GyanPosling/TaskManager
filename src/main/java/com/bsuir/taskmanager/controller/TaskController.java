@@ -1,11 +1,13 @@
 package com.bsuir.taskmanager.controller;
 
 import com.bsuir.taskmanager.controller.api.TaskControllerApi;
-import com.bsuir.taskmanager.model.dto.request.TaskCompositeRequest;
 import com.bsuir.taskmanager.model.dto.request.TaskRequest;
 import com.bsuir.taskmanager.model.dto.response.TaskResponse;
 import com.bsuir.taskmanager.model.entity.TaskStatus;
 import com.bsuir.taskmanager.service.TaskService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -110,18 +112,23 @@ public class TaskController implements TaskControllerApi {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @PostMapping("/with-tag-and-comment/no-tx")
-    public ResponseEntity<TaskResponse> createTaskWithTagAndCommentNoTx(
-            @RequestBody TaskCompositeRequest request) {
-        TaskResponse response = taskService.createTaskWithTagAndCommentNoTx(request);
+    @PostMapping("/bulk/no-tx")
+    public ResponseEntity<List<TaskResponse>> createBulkNoTx(
+            @RequestBody @Valid @Size(min = 1, max = 100) List<@Valid TaskRequest> requests,
+            @RequestParam(name = "failAfterIndex", required = false)
+            @Positive Integer failAfterIndex
+    ) {
+        List<TaskResponse> response = taskService.createBulkNoTx(requests, failAfterIndex);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @PostMapping("/with-tag-and-comment/tx")
-    public ResponseEntity<TaskResponse> createTaskWithTagAndCommentTx(
-            @RequestBody TaskCompositeRequest request
+    @PostMapping("/bulk/tx")
+    public ResponseEntity<List<TaskResponse>> createBulkTx(
+            @RequestBody @Valid @Size(min = 1, max = 100) List<@Valid TaskRequest> requests,
+            @RequestParam(name = "failAfterIndex", required = false)
+            @Positive Integer failAfterIndex
     ) {
-        TaskResponse response = taskService.createTaskWithTagAndCommentTx(request);
+        List<TaskResponse> response = taskService.createBulkTx(requests, failAfterIndex);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 

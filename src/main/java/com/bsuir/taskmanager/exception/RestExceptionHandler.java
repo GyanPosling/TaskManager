@@ -35,9 +35,11 @@ public class RestExceptionHandler {
         return buildError(HttpStatus.NOT_FOUND, ex.getMessage(), request.getRequestURI(), null);
     }
 
-    @ExceptionHandler(FailAfterTaskException.class)
-    public ResponseEntity<ErrorResponse> handleFailAfterTask(FailAfterTaskException ex,
-                                                             HttpServletRequest request) {
+    @ExceptionHandler(BulkTaskCreationException.class)
+    public ResponseEntity<ErrorResponse> handleBulkTaskCreation(
+            BulkTaskCreationException ex,
+            HttpServletRequest request
+    ) {
         log.error("Business error for path {}: {}", request.getRequestURI(), ex.getMessage());
         return buildError(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage(),
                 request.getRequestURI(), null);

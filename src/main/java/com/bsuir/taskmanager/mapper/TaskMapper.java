@@ -1,6 +1,5 @@
 package com.bsuir.taskmanager.mapper;
 
-import com.bsuir.taskmanager.model.dto.request.TaskCompositeRequest;
 import com.bsuir.taskmanager.model.dto.request.TaskRequest;
 import com.bsuir.taskmanager.model.dto.response.TaskResponse;
 import com.bsuir.taskmanager.model.entity.Project;
@@ -30,16 +29,6 @@ public interface TaskMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "comments", ignore = true)
     Task fromRequest(TaskRequest request, Project project, User assignee, Set<Tag> tags);
-
-    @Mapping(target = "project", source = "project")
-    @Mapping(target = "assignee", source = "assignee")
-    @Mapping(target = "tags", expression = "java(tags != null ? tags : new HashSet<>())")
-    @Mapping(target = "status", expression = "java(request.getStatus() != null"
-            + " ? request.getStatus() : TaskStatus.TODO)")
-    @Mapping(target = "description", source = "request.description")
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "comments", ignore = true)
-    Task fromRequest(TaskCompositeRequest request, Project project, User assignee, Set<Tag> tags);
 
     @Mapping(target = "projectId", source = "project.id")
     @Mapping(target = "assigneeId", source = "assignee.id")

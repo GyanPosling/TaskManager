@@ -1,16 +1,19 @@
 package com.bsuir.taskmanager.controller.api;
 
-import com.bsuir.taskmanager.model.dto.request.TaskCompositeRequest;
 import com.bsuir.taskmanager.model.dto.request.TaskRequest;
 import com.bsuir.taskmanager.model.dto.response.TaskResponse;
 import com.bsuir.taskmanager.model.entity.TaskStatus;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 import java.util.List;
 import org.springframework.data.domain.Page;
@@ -19,6 +22,38 @@ import org.springframework.http.ResponseEntity;
 
 @Tag(name = "Tasks", description = "Task CRUD operations")
 public interface TaskControllerApi {
+    String BULK_TASKS_REQUEST_EXAMPLE = """
+            [
+              {
+                "title": "Design task search API",
+                "description": "Prepare DTOs and endpoint contract",
+                "status": "TODO",
+                "dueDate": "2026-03-20",
+                "projectId": 1,
+                "assigneeId": 1,
+                "tagIds": [1]
+              },
+              {
+                "title": "Implement transactional bulk create",
+                "description": "Add service logic for tx and no-tx modes",
+                "status": "IN_PROGRESS",
+                "dueDate": "2026-03-21",
+                "projectId": 1,
+                "assigneeId": 1,
+                "tagIds": [1, 2]
+              },
+              {
+                "title": "Write Mockito tests for services",
+                "description": "Cover happy path and failure scenarios",
+                "status": "DONE",
+                "dueDate": "2026-03-22",
+                "projectId": 1,
+                "assigneeId": 2,
+                "tagIds": [2]
+              }
+            ]
+            """;
+
     @Operation(summary = "Get all tasks", description = "Optional filtering by status")
     @ApiResponse(responseCode = "200", description = "Tasks returned")
     @InternalServerErrorApiResponse
@@ -79,20 +114,44 @@ public interface TaskControllerApi {
     @InternalServerErrorApiResponse
     ResponseEntity<TaskResponse> create(@Valid TaskRequest request);
 
-    @Operation(summary = "Create task, tag, comment without transaction")
-    @ApiResponse(responseCode = "201", description = "Composite data created")
+    @Operation(summary = "Bulk create tasks without transaction")
+    @ApiResponse(responseCode = "201", description = "Tasks created")
     @BadRequestApiResponse
     @InternalServerErrorApiResponse
-    ResponseEntity<TaskResponse> createTaskWithTagAndCommentNoTx(
-            @Valid TaskCompositeRequest request
+    @RequestBody(
+            required = true,
+            content = @Content(
+                    mediaType = "application/json",
+                    examples = @ExampleObject(
+                            name = "Three bulk tasks",
+                            value = BULK_TASKS_REQUEST_EXAMPLE
+                    )
+            )
+    )
+    ResponseEntity<List<TaskResponse>> createBulkNoTx(
+            @Valid @Size(min = 1, max = 100) List<@Valid TaskRequest> requests,
+            @Parameter(description = "Force failure after N successfully saved tasks")
+            @Positive Integer failAfterIndex
     );
 
-    @Operation(summary = "Create task, tag, comment with transaction")
-    @ApiResponse(responseCode = "201", description = "Composite data created")
+    @Operation(summary = "Bulk create tasks with transaction")
+    @ApiResponse(responseCode = "201", description = "Tasks created")
     @BadRequestApiResponse
     @InternalServerErrorApiResponse
-    ResponseEntity<TaskResponse> createTaskWithTagAndCommentTx(
-            @Valid TaskCompositeRequest request
+    @RequestBody(
+            required = true,
+            content = @Content(
+                    mediaType = "application/json",
+                    examples = @ExampleObject(
+                            name = "Three bulk tasks",
+                            value = BULK_TASKS_REQUEST_EXAMPLE
+                    )
+            )
+    )
+    ResponseEntity<List<TaskResponse>> createBulkTx(
+            @Valid @Size(min = 1, max = 100) List<@Valid TaskRequest> requests,
+            @Parameter(description = "Force failure after N successfully saved tasks")
+            @Positive Integer failAfterIndex
     );
 
     @Operation(summary = "Update task")

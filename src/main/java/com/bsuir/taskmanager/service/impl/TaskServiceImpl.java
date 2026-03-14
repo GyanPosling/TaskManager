@@ -2,22 +2,19 @@ package com.bsuir.taskmanager.service.impl;
 
 import com.bsuir.taskmanager.cache.TaskSearchCache;
 import com.bsuir.taskmanager.cache.TaskSearchQueryKey;
-import com.bsuir.taskmanager.exception.FailAfterTaskException;
+import com.bsuir.taskmanager.exception.BulkTaskCreationException;
 import com.bsuir.taskmanager.exception.ProjectNotFoundException;
 import com.bsuir.taskmanager.exception.TagsNotFoundException;
 import com.bsuir.taskmanager.exception.TaskNotFoundException;
 import com.bsuir.taskmanager.exception.UserNotFoundException;
 import com.bsuir.taskmanager.mapper.TaskMapper;
-import com.bsuir.taskmanager.model.dto.request.TaskCompositeRequest;
 import com.bsuir.taskmanager.model.dto.request.TaskRequest;
 import com.bsuir.taskmanager.model.dto.response.TaskResponse;
-import com.bsuir.taskmanager.model.entity.Comment;
 import com.bsuir.taskmanager.model.entity.Project;
 import com.bsuir.taskmanager.model.entity.Tag;
 import com.bsuir.taskmanager.model.entity.Task;
 import com.bsuir.taskmanager.model.entity.TaskStatus;
 import com.bsuir.taskmanager.model.entity.User;
-import com.bsuir.taskmanager.repository.CommentRepository;
 import com.bsuir.taskmanager.repository.ProjectRepository;
 import com.bsuir.taskmanager.repository.TagRepository;
 import com.bsuir.taskmanager.repository.TaskRepository;
@@ -26,7 +23,9 @@ import com.bsuir.taskmanager.service.TaskService;
 import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.IntStream;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -51,7 +50,6 @@ public class TaskServiceImpl implements TaskService {
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
     private final TagRepository tagRepository;
-    private final CommentRepository commentRepository;
     private final TaskMapper taskMapper;
     private final TaskSearchCache taskSearchCache;
 
@@ -93,15 +91,19 @@ public class TaskServiceImpl implements TaskService {
                 status,
                 pageable
         );
-        Page<TaskResponse> cachedPage = taskSearchCache.get(cacheKey).orElse(null);
-        if (cachedPage != null) {
-            return cachedPage;
-        }
-        Page<TaskResponse> responsePage = taskRepository
-                .findByProjectOwnerIdAndStatus(ownerId, status, pageable)
-                .map(taskMapper::toResponse);
-        taskSearchCache.put(cacheKey, responsePage);
-        return responsePage;
+        return taskSearchCache.get(cacheKey)
+                .map(cachedPage -> {
+                    logCacheHit(cacheKey);
+                    return cachedPage;
+                })
+                .orElseGet(() -> {
+                    logCacheMiss(cacheKey);
+                    Page<TaskResponse> responsePage = taskRepository
+                            .findByProjectOwnerIdAndStatus(ownerId, status, pageable)
+                            .map(taskMapper::toResponse);
+                    taskSearchCache.put(cacheKey, responsePage);
+                    return responsePage;
+                });
     }
 
     @Override
@@ -150,14 +152,14 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public TaskResponse createTaskWithTagAndCommentNoTx(TaskCompositeRequest request) {
-        return createCompositeInternal(request);
+    public List<TaskResponse> createBulkNoTx(List<TaskRequest> requests, Integer failAfterIndex) {
+        return createBulkInternal(requests, failAfterIndex);
     }
 
     @Override
     @Transactional
-    public TaskResponse createTaskWithTagAndCommentTx(TaskCompositeRequest request) {
-        return createCompositeInternal(request);
+    public List<TaskResponse> createBulkTx(List<TaskRequest> requests, Integer failAfterIndex) {
+        return createBulkInternal(requests, failAfterIndex);
     }
 
     @Override
@@ -196,17 +198,81 @@ public class TaskServiceImpl implements TaskService {
     }
 
     private User getAssignee(Long assigneeId) {
-        if (assigneeId == null) {
-            return null;
-        }
-        return userRepository.findById(assigneeId)
-                .orElseThrow(() -> new UserNotFoundException("User not found: " + assigneeId));
+        return Optional.ofNullable(assigneeId)
+                .map(id -> userRepository.findById(id)
+                        .orElseThrow(() -> new UserNotFoundException("User not found: " + id)))
+                .orElse(null);
     }
 
     private Set<Tag> getTags(Set<Long> tagIds) {
-        if (tagIds == null || tagIds.isEmpty()) {
-            return new HashSet<>();
+        return Optional.ofNullable(tagIds)
+                .filter(ids -> !ids.isEmpty())
+                .map(this::loadTags)
+                .orElseGet(HashSet::new);
+    }
+
+    private Page<TaskResponse> findByTagNameAndDueDate(
+            TaskSearchQueryKey cacheKey,
+            TaskPageSupplier taskPageSupplier
+    ) {
+        return taskSearchCache.get(cacheKey)
+                .map(cachedPage -> {
+                    logCacheHit(cacheKey);
+                    return cachedPage;
+                })
+                .orElseGet(() -> {
+                    logCacheMiss(cacheKey);
+                    Page<TaskResponse> responsePage = taskPageSupplier.get()
+                            .map(taskMapper::toResponse);
+                    taskSearchCache.put(cacheKey, responsePage);
+                    return responsePage;
+                });
+    }
+
+    private List<TaskResponse> createBulkInternal(
+            List<TaskRequest> requests,
+            Integer failAfterIndex
+    ) {
+        try {
+            return IntStream.range(0, requests.size())
+                    .mapToObj(index -> createBulkTask(
+                            requests.get(index),
+                            index + 1,
+                            failAfterIndex
+                    ))
+                    .toList();
+        } finally {
+            invalidateSearchCache();
         }
+    }
+
+    private TaskResponse createBulkTask(
+            TaskRequest request,
+            int processedTasksCount,
+            Integer failAfterIndex
+    ) {
+        Project project = getProject(request.getProjectId());
+        User assignee = getAssignee(request.getAssigneeId());
+        Set<Tag> tags = getTags(request.getTagIds());
+        Task task = taskMapper.fromRequest(request, project, assignee, tags);
+        Task savedTask = taskRepository.save(task);
+
+        if (shouldFailAfterTask(processedTasksCount, failAfterIndex)) {
+            throw new BulkTaskCreationException(
+                    "Forced error after saving %d bulk tasks".formatted(processedTasksCount)
+            );
+        }
+
+        return taskMapper.toResponse(savedTask);
+    }
+
+    private List<TaskResponse> toResponses(List<Task> tasks) {
+        return tasks.stream()
+                .map(taskMapper::toResponse)
+                .toList();
+    }
+
+    private Set<Tag> loadTags(Set<Long> tagIds) {
         List<Tag> tags = tagRepository.findAllById(tagIds);
         if (tags.size() != tagIds.size()) {
             throw new TagsNotFoundException("Some tags not found");
@@ -214,28 +280,25 @@ public class TaskServiceImpl implements TaskService {
         return new HashSet<>(tags);
     }
 
-    private User getCommentAuthor(Long authorId) {
-        return userRepository.findById(authorId)
-                .orElseThrow(() -> new UserNotFoundException("User not found: " + authorId));
+    private boolean shouldFailAfterTask(int processedTasksCount, Integer failAfterIndex) {
+        return Optional.ofNullable(failAfterIndex)
+                .filter(index -> index == processedTasksCount)
+                .isPresent();
     }
 
-    private Page<TaskResponse> findByTagNameAndDueDate(
-            TaskSearchQueryKey cacheKey,
-            TaskPageSupplier taskPageSupplier
-    ) {
-        Page<TaskResponse> cachedPage = taskSearchCache.get(cacheKey).orElse(null);
-        if (cachedPage != null) {
-            log.info(
-                    TASK_SEARCH_CACHE_HIT_LOG,
-                    cacheKey.queryType(),
-                    cacheKey.tagName(),
-                    cacheKey.dueDate(),
-                    cacheKey.pageNumber(),
-                    cacheKey.pageSize(),
-                    cacheKey.sort()
-            );
-            return cachedPage;
-        }
+    private void logCacheHit(TaskSearchQueryKey cacheKey) {
+        log.info(
+                TASK_SEARCH_CACHE_HIT_LOG,
+                cacheKey.queryType(),
+                cacheKey.tagName(),
+                cacheKey.dueDate(),
+                cacheKey.pageNumber(),
+                cacheKey.pageSize(),
+                cacheKey.sort()
+        );
+    }
+
+    private void logCacheMiss(TaskSearchQueryKey cacheKey) {
         log.info(
                 TASK_SEARCH_CACHE_MISS_LOG,
                 cacheKey.queryType(),
@@ -245,41 +308,6 @@ public class TaskServiceImpl implements TaskService {
                 cacheKey.pageSize(),
                 cacheKey.sort()
         );
-        Page<TaskResponse> responsePage = taskPageSupplier.get().map(taskMapper::toResponse);
-        taskSearchCache.put(cacheKey, responsePage);
-        return responsePage;
-    }
-
-    private TaskResponse createCompositeInternal(TaskCompositeRequest request) {
-        Project project = getProject(request.getProjectId());
-        User assignee = getAssignee(request.getAssigneeId());
-        Task task = taskMapper.fromRequest(request, project, assignee, new HashSet<>());
-        Task savedTask = taskRepository.save(task);
-
-        Tag tag = new Tag();
-        tag.setName(request.getTagName());
-        Tag savedTag = tagRepository.save(tag);
-        savedTask.getTags().add(savedTag);
-        savedTask = taskRepository.save(savedTask);
-        invalidateSearchCache();
-
-        if (request.isFailAfterTask()) {
-            throw new FailAfterTaskException("Forced error after saving task and tag");
-        }
-
-        User author = getCommentAuthor(request.getCommentAuthorId());
-        Comment comment = new Comment();
-        comment.setText(request.getCommentText());
-        comment.setTask(savedTask);
-        comment.setAuthor(author);
-        commentRepository.save(comment);
-        return taskMapper.toResponse(savedTask);
-    }
-
-    private List<TaskResponse> toResponses(List<Task> tasks) {
-        return tasks.stream()
-                .map(taskMapper::toResponse)
-                .toList();
     }
 
     private void invalidateSearchCache() {
