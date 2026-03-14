@@ -103,6 +103,7 @@ class TaskServiceImplTest {
         Project project = project(1L);
         TaskRequest request = taskRequest("Failing task", 1L, null, Set.of());
         Task savedTask = task(21L, "Failing task");
+        List<TaskRequest> requests = List.of(request, request);
 
         when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
         when(taskMapper.fromRequest(request, project, null, Set.of())).thenReturn(savedTask);
@@ -110,7 +111,7 @@ class TaskServiceImplTest {
 
         BulkTaskCreationException exception = assertThrows(
                 BulkTaskCreationException.class,
-                () -> taskService.createBulkNoTx(List.of(request, request), 1)
+                () -> taskService.createBulkNoTx(requests, 1)
         );
 
         assertEquals("Forced error after saving 1 bulk tasks", exception.getMessage());
@@ -123,13 +124,14 @@ class TaskServiceImplTest {
     void createBulkTxShouldThrowWhenNotAllTagsExist() {
         Project project = project(1L);
         TaskRequest request = taskRequest("Tagged task", 1L, null, Set.of(4L, 5L));
+        List<TaskRequest> requests = List.of(request);
 
         when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
         when(tagRepository.findAllById(Set.of(4L, 5L))).thenReturn(List.of(tag(4L)));
 
         assertThrows(
                 TagsNotFoundException.class,
-                () -> taskService.createBulkTx(List.of(request), null)
+                () -> taskService.createBulkTx(requests, null)
         );
 
         verify(taskRepository, never()).save(org.mockito.ArgumentMatchers.any(Task.class));
@@ -166,7 +168,6 @@ class TaskServiceImplTest {
         Tag firstTag = tag(7L);
         Tag secondTag = tag(8L);
         Set<Long> tagIds = Set.of(7L, 8L);
-        Set<Tag> tags = Set.of(firstTag, secondTag);
         TaskRequest request = taskRequest("Assigned task", 1L, 5L, tagIds);
         Task mappedTask = task(41L, "Assigned task");
         TaskResponse response = taskResponse(41L, "Assigned task");
