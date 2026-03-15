@@ -22,6 +22,7 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 @RestControllerAdvice
 public class RestExceptionHandler {
     @ExceptionHandler({
+            AsyncBulkTaskOperationNotFoundException.class,
             CommentNotFoundException.class,
             ProjectNotFoundException.class,
             TagNotFoundException.class,

@@ -20,7 +20,11 @@ public class ServiceExecutionTimeAspect {
     public void serviceMethods() {
     }
 
-    @Around("serviceMethods()")
+    @Pointcut("!within(com.bsuir.taskmanager.service.racecondition..*)")
+    public void nonRaceConditionServices() {
+    }
+
+    @Around("serviceMethods() && nonRaceConditionServices()")
     public Object logExecutionTime(ProceedingJoinPoint joinPoint) throws Throwable {
         String methodName = joinPoint.getSignature().toShortString();
         long startTime = System.nanoTime();

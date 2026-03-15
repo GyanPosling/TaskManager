@@ -3,6 +3,7 @@ package com.bsuir.taskmanager.service.impl;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -134,7 +135,7 @@ class TaskServiceImplTest {
                 () -> taskService.createBulkTx(requests, null)
         );
 
-        verify(taskRepository, never()).save(org.mockito.ArgumentMatchers.any(Task.class));
+        verify(taskRepository, never()).save(any(Task.class));
         verify(taskSearchCache).clear();
     }
 

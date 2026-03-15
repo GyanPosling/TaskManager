@@ -1,6 +1,7 @@
 package com.bsuir.taskmanager.controller.api;
 
 import com.bsuir.taskmanager.model.dto.request.TaskRequest;
+import com.bsuir.taskmanager.model.dto.response.AsyncBulkTaskStatusResponse;
 import com.bsuir.taskmanager.model.dto.response.TaskResponse;
 import com.bsuir.taskmanager.model.entity.TaskStatus;
 import io.swagger.v3.oas.annotations.Operation;
@@ -153,6 +154,31 @@ public interface TaskControllerApi {
             @Parameter(description = "Force failure after N successfully saved tasks")
             @Positive Integer failAfterIndex
     );
+
+    @Operation(summary = "Start async bulk task creation")
+    @ApiResponse(responseCode = "202", description = "Async bulk task creation started")
+    @BadRequestApiResponse
+    @InternalServerErrorApiResponse
+    @RequestBody(
+            required = true,
+            content = @Content(
+                    mediaType = "application/json",
+                    examples = @ExampleObject(
+                            name = "Three bulk tasks",
+                            value = BULK_TASKS_REQUEST_EXAMPLE
+                    )
+            )
+    )
+    ResponseEntity<AsyncBulkTaskStatusResponse> createBulkAsync(
+            @Valid @Size(min = 1, max = 100) List<@Valid TaskRequest> requests
+    );
+
+    @Operation(summary = "Get async bulk task creation status")
+    @ApiResponse(responseCode = "200", description = "Async bulk task status returned")
+    @BadRequestApiResponse
+    @NotFoundApiResponse
+    @InternalServerErrorApiResponse
+    ResponseEntity<AsyncBulkTaskStatusResponse> getBulkAsyncStatus(@Positive Long operationId);
 
     @Operation(summary = "Update task")
     @ApiResponse(responseCode = "200", description = "Task updated")

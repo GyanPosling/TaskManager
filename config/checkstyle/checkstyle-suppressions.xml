@@ -1,6 +1,14 @@
 <?xml version="1.0"?>
-<!DOCTYPE suppressions PUBLIC "-//Checkstyle//DTD Suppressions 1.2//EN"
-    "https://checkstyle.org/dtds/suppressions_1_2.dtd">
+<!DOCTYPE suppressions [
+    <!ELEMENT suppressions (suppress*)>
+    <!ELEMENT suppress EMPTY>
+    <!ATTLIST suppress
+        checks CDATA #REQUIRED
+        files CDATA #REQUIRED
+        id CDATA #IMPLIED
+        lines CDATA #IMPLIED
+        columns CDATA #IMPLIED>
+]>
 <suppressions>
     <suppress checks="FileTabCharacter" files=".*"/>
     <suppress checks=".*Javadoc.*" files=".*"/>

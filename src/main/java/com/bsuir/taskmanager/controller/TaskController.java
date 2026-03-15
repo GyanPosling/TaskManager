@@ -2,8 +2,10 @@ package com.bsuir.taskmanager.controller;
 
 import com.bsuir.taskmanager.controller.api.TaskControllerApi;
 import com.bsuir.taskmanager.model.dto.request.TaskRequest;
+import com.bsuir.taskmanager.model.dto.response.AsyncBulkTaskStatusResponse;
 import com.bsuir.taskmanager.model.dto.response.TaskResponse;
 import com.bsuir.taskmanager.model.entity.TaskStatus;
+import com.bsuir.taskmanager.service.TaskAsyncService;
 import com.bsuir.taskmanager.service.TaskService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
@@ -36,6 +38,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class TaskController implements TaskControllerApi {
     private static final int MAX_PAGE_SIZE = 10;
 
+    private final TaskAsyncService taskAsyncService;
     private final TaskService taskService;
 
     @GetMapping
@@ -130,6 +133,21 @@ public class TaskController implements TaskControllerApi {
     ) {
         List<TaskResponse> response = taskService.createBulkTx(requests, failAfterIndex);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/bulk/async")
+    public ResponseEntity<AsyncBulkTaskStatusResponse> createBulkAsync(
+            @RequestBody @Valid @Size(min = 1, max = 100) List<@Valid TaskRequest> requests
+    ) {
+        AsyncBulkTaskStatusResponse response = taskAsyncService.startBulkCreate(requests);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
+    }
+
+    @GetMapping("/bulk/async/{operationId}")
+    public ResponseEntity<AsyncBulkTaskStatusResponse> getBulkAsyncStatus(
+            @PathVariable("operationId") Long operationId
+    ) {
+        return ResponseEntity.ok(taskAsyncService.getBulkCreateStatus(operationId));
     }
 
     @PutMapping("/{id}")

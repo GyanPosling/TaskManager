@@ -5,9 +5,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-@Disabled("Unit-test suite focuses on service layer and does not require full application startup")
+@Disabled("Requires a running PostgreSQL instance for full application context startup")
 class TaskmanagerApplicationTests {
-
 	@Test
 	void contextLoads() {
 	}

@@ -2,6 +2,7 @@ package com.bsuir.taskmanager.repository;
 
 import com.bsuir.taskmanager.model.entity.Task;
 import com.bsuir.taskmanager.model.entity.TaskStatus;
+import java.time.LocalDate;
 import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -50,7 +51,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     )
     Page<Task> findByTagNameAndDueDateBeforeEqualJpql(
             @Param("tagName") String tagName,
-            @Param("dueDate") java.time.LocalDate dueDate,
+            @Param("dueDate") LocalDate dueDate,
             Pageable pageable
     );
 
@@ -67,7 +68,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     )
     Page<Task> findByTagNameAndDueDateBeforeEqualNative(
             @Param("tagName") String tagName,
-            @Param("dueDate") java.time.LocalDate dueDate,
+            @Param("dueDate") LocalDate dueDate,
             Pageable pageable
     );
 }
