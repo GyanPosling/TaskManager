@@ -15,8 +15,14 @@ This is a Java Spring Boot REST API for managing tasks in a simple task manageme
 - Native SQL task search by tag and due date with pagination
 - In-memory HashMap index for repeated task search requests
 - Cache invalidation on task, project, and tag changes
+- Bulk task creation endpoints with and without transaction support
+- Async bulk task creation with operation ID and status polling
+- Race condition demo with unsafe, `synchronized`, and `AtomicInteger` counters
+- 50-thread concurrency demo via `ExecutorService`
 - Validation for incoming requests
 - Composite creation demo showing partial save vs transactional rollback
+- Service execution time logging via Spring AOP
+- Mockito-based unit tests for the service layer
 - OpenAPI documentation via Springdoc
 - PostgreSQL schema migrations via Liquibase
 - Docker Compose setup for app + PostgreSQL
