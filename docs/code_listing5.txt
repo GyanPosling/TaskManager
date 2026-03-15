@@ -1,0 +1,806 @@
+Файл TaskController.java
+
+package com.bsuir.taskmanager.controller;
+
+import com.bsuir.taskmanager.controller.api.TaskControllerApi;
+import com.bsuir.taskmanager.model.dto.request.TaskRequest;
+import com.bsuir.taskmanager.model.dto.response.AsyncBulkTaskStatusResponse;
+import com.bsuir.taskmanager.model.dto.response.TaskResponse;
+import com.bsuir.taskmanager.model.entity.TaskStatus;
+import com.bsuir.taskmanager.service.TaskAsyncService;
+import com.bsuir.taskmanager.service.TaskService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
+import java.time.LocalDate;
+import java.util.List;
+import lombok.AllArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@Validated
+@AllArgsConstructor
+@RequestMapping("/api/tasks")
+public class TaskController implements TaskControllerApi {
+    private static final int MAX_PAGE_SIZE = 10;
+
+    private final TaskAsyncService taskAsyncService;
+    private final TaskService taskService;
+
+    @GetMapping
+    public ResponseEntity<List<TaskResponse>> getAll(
+            @RequestParam(name = "status", required = false) TaskStatus status
+    ) {
+        List<TaskResponse> response = status == null
+                ? taskService.findAll()
+                : taskService.findByStatus(status);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/with-tags")
+    public ResponseEntity<List<TaskResponse>> getAllWithTags() {
+        return ResponseEntity.ok(taskService.findAllWithTags());
+    }
+
+    @GetMapping("/with-comments")
+    public ResponseEntity<List<TaskResponse>> getAllWithComments() {
+        return ResponseEntity.ok(taskService.findAllWithComments());
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<TaskResponse> getById(@PathVariable("id") Long id) {
+        return ResponseEntity.ok(taskService.findById(id));
+    }
+
+    @GetMapping("/search/by-project-owner")
+    public ResponseEntity<Page<TaskResponse>> getByProjectOwnerAndStatus(
+            @RequestParam("ownerId") Long ownerId,
+            @RequestParam("status") TaskStatus status,
+            @PageableDefault(sort = "id") Pageable pageable
+    ) {
+        return ResponseEntity.ok(taskService.findByProjectOwnerAndStatus(
+                ownerId,
+                status,
+                limitPageSize(pageable)
+        ));
+    }
+
+    @GetMapping("/search/by-tag/jpql")
+    public ResponseEntity<Page<TaskResponse>> getByTagAndDueDateJpql(
+            @RequestParam("tagName") String tagName,
+            @RequestParam("dueDate")
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate dueDate,
+            @PageableDefault(sort = "id") Pageable pageable
+    ) {
+        return ResponseEntity.ok(taskService.findByTagNameAndDueDateJpql(
+                tagName,
+                dueDate,
+                limitPageSize(pageable)
+        ));
+    }
+
+    @GetMapping("/search/by-tag/native")
+    public ResponseEntity<Page<TaskResponse>> getByTagAndDueDateNative(
+            @RequestParam("tagName") String tagName,
+            @RequestParam("dueDate")
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate dueDate,
+            @PageableDefault(sort = "id") Pageable pageable
+    ) {
+        return ResponseEntity.ok(taskService.findByTagNameAndDueDateNative(
+                tagName,
+                dueDate,
+                limitPageSize(pageable)
+        ));
+    }
+
+    @PostMapping
+    public ResponseEntity<TaskResponse> create(@RequestBody TaskRequest request) {
+        TaskResponse response = taskService.create(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/bulk/no-tx")
+    public ResponseEntity<List<TaskResponse>> createBulkNoTx(
+            @RequestBody @Valid @Size(min = 1, max = 100) List<@Valid TaskRequest> requests,
+            @RequestParam(name = "failAfterIndex", required = false)
+            @Positive Integer failAfterIndex
+    ) {
+        List<TaskResponse> response = taskService.createBulkNoTx(requests, failAfterIndex);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/bulk/tx")
+    public ResponseEntity<List<TaskResponse>> createBulkTx(
+            @RequestBody @Valid @Size(min = 1, max = 100) List<@Valid TaskRequest> requests,
+            @RequestParam(name = "failAfterIndex", required = false)
+            @Positive Integer failAfterIndex
+    ) {
+        List<TaskResponse> response = taskService.createBulkTx(requests, failAfterIndex);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/bulk/async")
+    public ResponseEntity<AsyncBulkTaskStatusResponse> createBulkAsync(
+            @RequestBody @Valid @Size(min = 1, max = 100) List<@Valid TaskRequest> requests
+    ) {
+        AsyncBulkTaskStatusResponse response = taskAsyncService.startBulkCreate(requests);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
+    }
+
+    @GetMapping("/bulk/async/{operationId}")
+    public ResponseEntity<AsyncBulkTaskStatusResponse> getBulkAsyncStatus(
+            @PathVariable("operationId") Long operationId
+    ) {
+        return ResponseEntity.ok(taskAsyncService.getBulkCreateStatus(operationId));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<TaskResponse> update(@PathVariable("id") Long id,
+                                               @RequestBody TaskRequest request) {
+        return ResponseEntity.ok(taskService.update(id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable("id") Long id) {
+        taskService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    private Pageable limitPageSize(Pageable pageable) {
+        return PageRequest.of(
+                pageable.getPageNumber(),
+                Math.min(pageable.getPageSize(), MAX_PAGE_SIZE),
+                pageable.getSort()
+        );
+    }
+}
+
+
+Файл TaskService.java
+
+package com.bsuir.taskmanager.service;
+
+import com.bsuir.taskmanager.model.dto.request.TaskRequest;
+import com.bsuir.taskmanager.model.dto.response.TaskResponse;
+import com.bsuir.taskmanager.model.entity.TaskStatus;
+import java.time.LocalDate;
+import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+public interface TaskService {
+    List<TaskResponse> findAll();
+
+    List<TaskResponse> findAllWithTags();
+
+    List<TaskResponse> findAllWithComments();
+
+    TaskResponse findById(Long id);
+
+    List<TaskResponse> findByStatus(TaskStatus status);
+
+    Page<TaskResponse> findByProjectOwnerAndStatus(
+            Long ownerId,
+            TaskStatus status,
+            Pageable pageable
+    );
+
+    Page<TaskResponse> findByTagNameAndDueDateJpql(
+            String tagName,
+            LocalDate dueDate,
+            Pageable pageable
+    );
+
+    Page<TaskResponse> findByTagNameAndDueDateNative(
+            String tagName,
+            LocalDate dueDate,
+            Pageable pageable
+    );
+
+    TaskResponse create(TaskRequest request);
+
+    List<TaskResponse> createBulkNoTx(List<TaskRequest> requests, Integer failAfterIndex);
+
+    List<TaskResponse> createBulkTx(List<TaskRequest> requests, Integer failAfterIndex);
+
+    TaskResponse update(Long id, TaskRequest request);
+
+    void delete(Long id);
+}
+
+
+Файл TaskServiceImpl.java
+
+package com.bsuir.taskmanager.service.impl;
+
+import com.bsuir.taskmanager.cache.TaskSearchCache;
+import com.bsuir.taskmanager.cache.TaskSearchQueryKey;
+import com.bsuir.taskmanager.exception.BulkTaskCreationException;
+import com.bsuir.taskmanager.exception.ProjectNotFoundException;
+import com.bsuir.taskmanager.exception.TagsNotFoundException;
+import com.bsuir.taskmanager.exception.TaskNotFoundException;
+import com.bsuir.taskmanager.exception.UserNotFoundException;
+import com.bsuir.taskmanager.mapper.TaskMapper;
+import com.bsuir.taskmanager.model.dto.request.TaskRequest;
+import com.bsuir.taskmanager.model.dto.response.TaskResponse;
+import com.bsuir.taskmanager.model.entity.Project;
+import com.bsuir.taskmanager.model.entity.Tag;
+import com.bsuir.taskmanager.model.entity.Task;
+import com.bsuir.taskmanager.model.entity.TaskStatus;
+import com.bsuir.taskmanager.model.entity.User;
+import com.bsuir.taskmanager.repository.ProjectRepository;
+import com.bsuir.taskmanager.repository.TagRepository;
+import com.bsuir.taskmanager.repository.TaskRepository;
+import com.bsuir.taskmanager.repository.UserRepository;
+import com.bsuir.taskmanager.service.TaskService;
+import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.IntStream;
+import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@Slf4j
+@Transactional(readOnly = true)
+@AllArgsConstructor
+public class TaskServiceImpl implements TaskService {
+    private static final String TASK_SEARCH_CACHE_HIT_LOG =
+            "Task search cache hit: queryType={}, "
+                    + "tagName={}, dueDate={}, page={}, size={}, sort={}";
+    private static final String TASK_SEARCH_CACHE_MISS_LOG =
+            "Task search cache miss: queryType={}, "
+                    + "tagName={}, dueDate={}, page={}, size={}, sort={}";
+
+    private final TaskRepository taskRepository;
+    private final ProjectRepository projectRepository;
+    private final UserRepository userRepository;
+    private final TagRepository tagRepository;
+    private final TaskMapper taskMapper;
+    private final TaskSearchCache taskSearchCache;
+
+    @Override
+    public List<TaskResponse> findAll() {
+        return toResponses(taskRepository.findAll());
+    }
+
+    @Override
+    public List<TaskResponse> findAllWithTags() {
+        return toResponses(taskRepository.findAllWithTags());
+    }
+
+    @Override
+    public List<TaskResponse> findAllWithComments() {
+        return toResponses(taskRepository.findAllWithComments());
+    }
+
+    @Override
+    public TaskResponse findById(Long id) {
+        Task task = taskRepository.findById(id)
+                .orElseThrow(() -> new TaskNotFoundException("Task not found: " + id));
+        return taskMapper.toResponse(task);
+    }
+
+    @Override
+    public List<TaskResponse> findByStatus(TaskStatus status) {
+        return toResponses(taskRepository.findByStatus(status));
+    }
+
+    @Override
+    public Page<TaskResponse> findByProjectOwnerAndStatus(
+            Long ownerId,
+            TaskStatus status,
+            Pageable pageable
+    ) {
+        TaskSearchQueryKey cacheKey = TaskSearchQueryKey.forProjectOwnerAndStatus(
+                ownerId,
+                status,
+                pageable
+        );
+        return taskSearchCache.get(cacheKey)
+                .map(cachedPage -> {
+                    logCacheHit(cacheKey);
+                    return cachedPage;
+                })
+                .orElseGet(() -> {
+                    logCacheMiss(cacheKey);
+                    Page<TaskResponse> responsePage = taskRepository
+                            .findByProjectOwnerIdAndStatus(ownerId, status, pageable)
+                            .map(taskMapper::toResponse);
+                    taskSearchCache.put(cacheKey, responsePage);
+                    return responsePage;
+                });
+    }
+
+    @Override
+    public Page<TaskResponse> findByTagNameAndDueDateJpql(
+            String tagName,
+            LocalDate dueDate,
+            Pageable pageable
+    ) {
+        return findByTagNameAndDueDate(
+                TaskSearchQueryKey.forTagAndDueDateJpql(tagName, dueDate, pageable),
+                () -> taskRepository.findByTagNameAndDueDateBeforeEqualJpql(
+                        tagName,
+                        dueDate,
+                        pageable
+                )
+        );
+    }
+
+    @Override
+    public Page<TaskResponse> findByTagNameAndDueDateNative(
+            String tagName,
+            LocalDate dueDate,
+            Pageable pageable
+    ) {
+        return findByTagNameAndDueDate(
+                TaskSearchQueryKey.forTagAndDueDateNative(tagName, dueDate, pageable),
+                () -> taskRepository.findByTagNameAndDueDateBeforeEqualNative(
+                        tagName,
+                        dueDate,
+                        pageable
+                )
+        );
+    }
+
+    @Override
+    @Transactional
+    public TaskResponse create(TaskRequest request) {
+        Project project = getProject(request.getProjectId());
+        User assignee = getAssignee(request.getAssigneeId());
+        Set<Tag> tags = getTags(request.getTagIds());
+        Task task = taskMapper.fromRequest(request, project, assignee, tags);
+        Task saved = taskRepository.save(task);
+        invalidateSearchCache();
+        return taskMapper.toResponse(saved);
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public List<TaskResponse> createBulkNoTx(List<TaskRequest> requests, Integer failAfterIndex) {
+        return createBulkInternal(requests, failAfterIndex);
+    }
+
+    @Override
+    @Transactional
+    public List<TaskResponse> createBulkTx(List<TaskRequest> requests, Integer failAfterIndex) {
+        return createBulkInternal(requests, failAfterIndex);
+    }
+
+    @Override
+    @Transactional
+    public TaskResponse update(Long id, TaskRequest request) {
+        Task task = taskRepository.findById(id)
+                .orElseThrow(() -> new TaskNotFoundException("Task not found: " + id));
+        Project project = getProject(request.getProjectId());
+        User assignee = getAssignee(request.getAssigneeId());
+        Set<Tag> tags = getTags(request.getTagIds());
+        task.setTitle(request.getTitle());
+        task.setDescription(request.getDescription());
+        task.setStatus(request.getStatus());
+        task.setDueDate(request.getDueDate());
+        task.setProject(project);
+        task.setAssignee(assignee);
+        task.setTags(tags);
+        Task saved = taskRepository.save(task);
+        invalidateSearchCache();
+        return taskMapper.toResponse(saved);
+    }
+
+    @Override
+    @Transactional
+    public void delete(Long id) {
+        if (!taskRepository.existsById(id)) {
+            throw new TaskNotFoundException("Task not found: " + id);
+        }
+        taskRepository.deleteById(id);
+        invalidateSearchCache();
+    }
+
+    private Project getProject(Long projectId) {
+        return projectRepository.findById(projectId)
+                .orElseThrow(() -> new ProjectNotFoundException("Project not found: " + projectId));
+    }
+
+    private User getAssignee(Long assigneeId) {
+        return Optional.ofNullable(assigneeId)
+                .map(id -> userRepository.findById(id)
+                        .orElseThrow(() -> new UserNotFoundException("User not found: " + id)))
+                .orElse(null);
+    }
+
+    private Set<Tag> getTags(Set<Long> tagIds) {
+        return Optional.ofNullable(tagIds)
+                .filter(ids -> !ids.isEmpty())
+                .map(this::loadTags)
+                .orElseGet(HashSet::new);
+    }
+
+    private Page<TaskResponse> findByTagNameAndDueDate(
+            TaskSearchQueryKey cacheKey,
+            TaskPageSupplier taskPageSupplier
+    ) {
+        return taskSearchCache.get(cacheKey)
+                .map(cachedPage -> {
+                    logCacheHit(cacheKey);
+                    return cachedPage;
+                })
+                .orElseGet(() -> {
+                    logCacheMiss(cacheKey);
+                    Page<TaskResponse> responsePage = taskPageSupplier.get()
+                            .map(taskMapper::toResponse);
+                    taskSearchCache.put(cacheKey, responsePage);
+                    return responsePage;
+                });
+    }
+
+    private List<TaskResponse> createBulkInternal(
+            List<TaskRequest> requests,
+            Integer failAfterIndex
+    ) {
+        try {
+            return IntStream.range(0, requests.size())
+                    .mapToObj(index -> createBulkTask(
+                            requests.get(index),
+                            index + 1,
+                            failAfterIndex
+                    ))
+                    .toList();
+        } finally {
+            invalidateSearchCache();
+        }
+    }
+
+    private TaskResponse createBulkTask(
+            TaskRequest request,
+            int processedTasksCount,
+            Integer failAfterIndex
+    ) {
+        Project project = getProject(request.getProjectId());
+        User assignee = getAssignee(request.getAssigneeId());
+        Set<Tag> tags = getTags(request.getTagIds());
+        Task task = taskMapper.fromRequest(request, project, assignee, tags);
+        Task savedTask = taskRepository.save(task);
+
+        if (shouldFailAfterTask(processedTasksCount, failAfterIndex)) {
+            throw new BulkTaskCreationException(
+                    "Forced error after saving %d bulk tasks".formatted(processedTasksCount)
+            );
+        }
+
+        return taskMapper.toResponse(savedTask);
+    }
+
+    private List<TaskResponse> toResponses(List<Task> tasks) {
+        return tasks.stream()
+                .map(taskMapper::toResponse)
+                .toList();
+    }
+
+    private Set<Tag> loadTags(Set<Long> tagIds) {
+        List<Tag> tags = tagRepository.findAllById(tagIds);
+        if (tags.size() != tagIds.size()) {
+            throw new TagsNotFoundException("Some tags not found");
+        }
+        return new HashSet<>(tags);
+    }
+
+    private boolean shouldFailAfterTask(int processedTasksCount, Integer failAfterIndex) {
+        return Optional.ofNullable(failAfterIndex)
+                .filter(index -> index == processedTasksCount)
+                .isPresent();
+    }
+
+    private void logCacheHit(TaskSearchQueryKey cacheKey) {
+        log.info(
+                TASK_SEARCH_CACHE_HIT_LOG,
+                cacheKey.queryType(),
+                cacheKey.tagName(),
+                cacheKey.dueDate(),
+                cacheKey.pageNumber(),
+                cacheKey.pageSize(),
+                cacheKey.sort()
+        );
+    }
+
+    private void logCacheMiss(TaskSearchQueryKey cacheKey) {
+        log.info(
+                TASK_SEARCH_CACHE_MISS_LOG,
+                cacheKey.queryType(),
+                cacheKey.tagName(),
+                cacheKey.dueDate(),
+                cacheKey.pageNumber(),
+                cacheKey.pageSize(),
+                cacheKey.sort()
+        );
+    }
+
+    private void invalidateSearchCache() {
+        taskSearchCache.clear();
+    }
+
+    @FunctionalInterface
+    private interface TaskPageSupplier {
+        Page<Task> get();
+    }
+}
+
+
+Файл BulkTaskCreationException.java
+
+package com.bsuir.taskmanager.exception;
+
+public class BulkTaskCreationException extends RuntimeException {
+    public BulkTaskCreationException(String message) {
+        super(message);
+    }
+}
+
+
+Файл TaskServiceImplTest.java
+
+package com.bsuir.taskmanager.service.impl;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import com.bsuir.taskmanager.cache.TaskSearchCache;
+import com.bsuir.taskmanager.cache.TaskSearchQueryKey;
+import com.bsuir.taskmanager.exception.BulkTaskCreationException;
+import com.bsuir.taskmanager.exception.TagsNotFoundException;
+import com.bsuir.taskmanager.mapper.TaskMapper;
+import com.bsuir.taskmanager.model.dto.request.TaskRequest;
+import com.bsuir.taskmanager.model.dto.response.TaskResponse;
+import com.bsuir.taskmanager.model.entity.Project;
+import com.bsuir.taskmanager.model.entity.Tag;
+import com.bsuir.taskmanager.model.entity.Task;
+import com.bsuir.taskmanager.model.entity.TaskStatus;
+import com.bsuir.taskmanager.model.entity.User;
+import com.bsuir.taskmanager.repository.ProjectRepository;
+import com.bsuir.taskmanager.repository.TagRepository;
+import com.bsuir.taskmanager.repository.TaskRepository;
+import com.bsuir.taskmanager.repository.UserRepository;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+
+@ExtendWith(MockitoExtension.class)
+class TaskServiceImplTest {
+    @Mock
+    private TaskRepository taskRepository;
+    @Mock
+    private ProjectRepository projectRepository;
+    @Mock
+    private UserRepository userRepository;
+    @Mock
+    private TagRepository tagRepository;
+    @Mock
+    private TaskMapper taskMapper;
+    @Mock
+    private TaskSearchCache taskSearchCache;
+
+    private TaskServiceImpl taskService;
+
+    @BeforeEach
+    void setUp() {
+        taskService = new TaskServiceImpl(
+                taskRepository,
+                projectRepository,
+                userRepository,
+                tagRepository,
+                taskMapper,
+                taskSearchCache
+        );
+    }
+
+    @Test
+    void createBulkNoTxShouldCreateAllTasksAndInvalidateCache() {
+        Project project = project(1L);
+        User assignee = user(3L);
+
+        TaskRequest firstRequest = taskRequest("Backlog task", 1L, null, Set.of());
+        TaskRequest secondRequest = taskRequest("Sprint task", 1L, 3L, Set.of());
+
+        Task firstTask = task(11L, "Backlog task");
+        Task secondTask = task(12L, "Sprint task");
+        TaskResponse firstResponse = taskResponse(11L, "Backlog task");
+        TaskResponse secondResponse = taskResponse(12L, "Sprint task");
+
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(userRepository.findById(3L)).thenReturn(Optional.of(assignee));
+        when(taskMapper.fromRequest(firstRequest, project, null, Set.of())).thenReturn(firstTask);
+        when(taskMapper.fromRequest(secondRequest, project, assignee, Set.of())).thenReturn(secondTask);
+        when(taskRepository.save(firstTask)).thenReturn(firstTask);
+        when(taskRepository.save(secondTask)).thenReturn(secondTask);
+        when(taskMapper.toResponse(firstTask)).thenReturn(firstResponse);
+        when(taskMapper.toResponse(secondTask)).thenReturn(secondResponse);
+
+        List<TaskResponse> result = taskService.createBulkNoTx(
+                List.of(firstRequest, secondRequest),
+                null
+        );
+
+        assertEquals(List.of(firstResponse, secondResponse), result);
+        verify(taskSearchCache).clear();
+    }
+
+    @Test
+    void createBulkNoTxShouldThrowAfterConfiguredIndexAndClearCache() {
+        Project project = project(1L);
+        TaskRequest request = taskRequest("Failing task", 1L, null, Set.of());
+        Task savedTask = task(21L, "Failing task");
+        List<TaskRequest> requests = List.of(request, request);
+
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(taskMapper.fromRequest(request, project, null, Set.of())).thenReturn(savedTask);
+        when(taskRepository.save(savedTask)).thenReturn(savedTask);
+
+        BulkTaskCreationException exception = assertThrows(
+                BulkTaskCreationException.class,
+                () -> taskService.createBulkNoTx(requests, 1)
+        );
+
+        assertEquals("Forced error after saving 1 bulk tasks", exception.getMessage());
+        verify(taskRepository).save(savedTask);
+        verify(taskMapper, never()).toResponse(savedTask);
+        verify(taskSearchCache).clear();
+    }
+
+    @Test
+    void createBulkTxShouldThrowWhenNotAllTagsExist() {
+        Project project = project(1L);
+        TaskRequest request = taskRequest("Tagged task", 1L, null, Set.of(4L, 5L));
+        List<TaskRequest> requests = List.of(request);
+
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(tagRepository.findAllById(Set.of(4L, 5L))).thenReturn(List.of(tag(4L)));
+
+        assertThrows(
+                TagsNotFoundException.class,
+                () -> taskService.createBulkTx(requests, null)
+        );
+
+        verify(taskRepository, never()).save(any(Task.class));
+        verify(taskSearchCache).clear();
+    }
+
+    @Test
+    void findByProjectOwnerAndStatusShouldReturnCachedPage() {
+        PageRequest pageable = PageRequest.of(0, 5);
+        TaskResponse response = taskResponse(31L, "Cached task");
+        Page<TaskResponse> cachedPage = new PageImpl<>(List.of(response), pageable, 1);
+        TaskSearchQueryKey cacheKey = TaskSearchQueryKey.forProjectOwnerAndStatus(
+                9L,
+                TaskStatus.TODO,
+                pageable
+        );
+
+        when(taskSearchCache.get(cacheKey)).thenReturn(Optional.of(cachedPage));
+
+        Page<TaskResponse> result = taskService.findByProjectOwnerAndStatus(
+                9L,
+                TaskStatus.TODO,
+                pageable
+        );
+
+        assertSame(cachedPage, result);
+        verify(taskRepository, never()).findByProjectOwnerIdAndStatus(9L, TaskStatus.TODO, pageable);
+    }
+
+    @Test
+    void createShouldResolveOptionalAssignee() {
+        Project project = project(1L);
+        User assignee = user(5L);
+        Tag firstTag = tag(7L);
+        Tag secondTag = tag(8L);
+        Set<Long> tagIds = Set.of(7L, 8L);
+        TaskRequest request = taskRequest("Assigned task", 1L, 5L, tagIds);
+        Task mappedTask = task(41L, "Assigned task");
+        TaskResponse response = taskResponse(41L, "Assigned task");
+
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(userRepository.findById(5L)).thenReturn(Optional.of(assignee));
+        when(tagRepository.findAllById(tagIds)).thenReturn(List.of(firstTag, secondTag));
+        when(taskMapper.fromRequest(eq(request), eq(project), eq(assignee), anySet()))
+                .thenReturn(mappedTask);
+        when(taskRepository.save(mappedTask)).thenReturn(mappedTask);
+        when(taskMapper.toResponse(mappedTask)).thenReturn(response);
+
+        TaskResponse result = taskService.create(request);
+
+        assertSame(response, result);
+        verify(taskSearchCache).clear();
+    }
+
+    private TaskRequest taskRequest(
+            String title,
+            Long projectId,
+            Long assigneeId,
+            Set<Long> tagIds
+    ) {
+        return new TaskRequest(
+                title,
+                "Description for " + title,
+                TaskStatus.TODO,
+                LocalDate.now().plusDays(1),
+                projectId,
+                assigneeId,
+                tagIds
+        );
+    }
+
+    private Project project(Long id) {
+        Project project = new Project();
+        project.setId(id);
+        project.setName("Project " + id);
+        return project;
+    }
+
+    private User user(Long id) {
+        User user = new User();
+        user.setId(id);
+        user.setUsername("user" + id);
+        return user;
+    }
+
+    private Tag tag(Long id) {
+        Tag tag = new Tag();
+        tag.setId(id);
+        tag.setName("tag-" + id);
+        return tag;
+    }
+
+    private Task task(Long id, String title) {
+        Task task = new Task();
+        task.setId(id);
+        task.setTitle(title);
+        task.setStatus(TaskStatus.TODO);
+        return task;
+    }
+
+    private TaskResponse taskResponse(Long id, String title) {
+        return new TaskResponse(id, title, null, TaskStatus.TODO, null, 1L, null, Set.of());
+    }
+}

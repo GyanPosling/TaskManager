@@ -1,0 +1,886 @@
+Файл TaskmanagerApplication.java
+
+package com.bsuir.taskmanager;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableAsync;
+
+@SpringBootApplication
+@EnableAsync
+public class TaskmanagerApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(TaskmanagerApplication.class, args);
+    }
+}
+
+
+Файл TaskController.java
+
+package com.bsuir.taskmanager.controller;
+
+import com.bsuir.taskmanager.controller.api.TaskControllerApi;
+import com.bsuir.taskmanager.model.dto.request.TaskRequest;
+import com.bsuir.taskmanager.model.dto.response.AsyncBulkTaskStatusResponse;
+import com.bsuir.taskmanager.model.dto.response.TaskResponse;
+import com.bsuir.taskmanager.model.entity.TaskStatus;
+import com.bsuir.taskmanager.service.TaskAsyncService;
+import com.bsuir.taskmanager.service.TaskService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
+import java.time.LocalDate;
+import java.util.List;
+import lombok.AllArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@Validated
+@AllArgsConstructor
+@RequestMapping("/api/tasks")
+public class TaskController implements TaskControllerApi {
+    private static final int MAX_PAGE_SIZE = 10;
+
+    private final TaskAsyncService taskAsyncService;
+    private final TaskService taskService;
+
+    @GetMapping
+    public ResponseEntity<List<TaskResponse>> getAll(
+            @RequestParam(name = "status", required = false) TaskStatus status
+    ) {
+        List<TaskResponse> response = status == null
+                ? taskService.findAll()
+                : taskService.findByStatus(status);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/with-tags")
+    public ResponseEntity<List<TaskResponse>> getAllWithTags() {
+        return ResponseEntity.ok(taskService.findAllWithTags());
+    }
+
+    @GetMapping("/with-comments")
+    public ResponseEntity<List<TaskResponse>> getAllWithComments() {
+        return ResponseEntity.ok(taskService.findAllWithComments());
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<TaskResponse> getById(@PathVariable("id") Long id) {
+        return ResponseEntity.ok(taskService.findById(id));
+    }
+
+    @GetMapping("/search/by-project-owner")
+    public ResponseEntity<Page<TaskResponse>> getByProjectOwnerAndStatus(
+            @RequestParam("ownerId") Long ownerId,
+            @RequestParam("status") TaskStatus status,
+            @PageableDefault(sort = "id") Pageable pageable
+    ) {
+        return ResponseEntity.ok(taskService.findByProjectOwnerAndStatus(
+                ownerId,
+                status,
+                limitPageSize(pageable)
+        ));
+    }
+
+    @GetMapping("/search/by-tag/jpql")
+    public ResponseEntity<Page<TaskResponse>> getByTagAndDueDateJpql(
+            @RequestParam("tagName") String tagName,
+            @RequestParam("dueDate")
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate dueDate,
+            @PageableDefault(sort = "id") Pageable pageable
+    ) {
+        return ResponseEntity.ok(taskService.findByTagNameAndDueDateJpql(
+                tagName,
+                dueDate,
+                limitPageSize(pageable)
+        ));
+    }
+
+    @GetMapping("/search/by-tag/native")
+    public ResponseEntity<Page<TaskResponse>> getByTagAndDueDateNative(
+            @RequestParam("tagName") String tagName,
+            @RequestParam("dueDate")
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate dueDate,
+            @PageableDefault(sort = "id") Pageable pageable
+    ) {
+        return ResponseEntity.ok(taskService.findByTagNameAndDueDateNative(
+                tagName,
+                dueDate,
+                limitPageSize(pageable)
+        ));
+    }
+
+    @PostMapping
+    public ResponseEntity<TaskResponse> create(@RequestBody TaskRequest request) {
+        TaskResponse response = taskService.create(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/bulk/no-tx")
+    public ResponseEntity<List<TaskResponse>> createBulkNoTx(
+            @RequestBody @Valid @Size(min = 1, max = 100) List<@Valid TaskRequest> requests,
+            @RequestParam(name = "failAfterIndex", required = false)
+            @Positive Integer failAfterIndex
+    ) {
+        List<TaskResponse> response = taskService.createBulkNoTx(requests, failAfterIndex);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/bulk/tx")
+    public ResponseEntity<List<TaskResponse>> createBulkTx(
+            @RequestBody @Valid @Size(min = 1, max = 100) List<@Valid TaskRequest> requests,
+            @RequestParam(name = "failAfterIndex", required = false)
+            @Positive Integer failAfterIndex
+    ) {
+        List<TaskResponse> response = taskService.createBulkTx(requests, failAfterIndex);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/bulk/async")
+    public ResponseEntity<AsyncBulkTaskStatusResponse> createBulkAsync(
+            @RequestBody @Valid @Size(min = 1, max = 100) List<@Valid TaskRequest> requests
+    ) {
+        AsyncBulkTaskStatusResponse response = taskAsyncService.startBulkCreate(requests);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
+    }
+
+    @GetMapping("/bulk/async/{operationId}")
+    public ResponseEntity<AsyncBulkTaskStatusResponse> getBulkAsyncStatus(
+            @PathVariable("operationId") Long operationId
+    ) {
+        return ResponseEntity.ok(taskAsyncService.getBulkCreateStatus(operationId));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<TaskResponse> update(@PathVariable("id") Long id,
+                                               @RequestBody TaskRequest request) {
+        return ResponseEntity.ok(taskService.update(id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable("id") Long id) {
+        taskService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    private Pageable limitPageSize(Pageable pageable) {
+        return PageRequest.of(
+                pageable.getPageNumber(),
+                Math.min(pageable.getPageSize(), MAX_PAGE_SIZE),
+                pageable.getSort()
+        );
+    }
+}
+
+
+Файл TaskAsyncService.java
+
+package com.bsuir.taskmanager.service;
+
+import com.bsuir.taskmanager.model.dto.request.TaskRequest;
+import com.bsuir.taskmanager.model.dto.response.AsyncBulkTaskStatusResponse;
+import java.util.List;
+
+public interface TaskAsyncService {
+    AsyncBulkTaskStatusResponse startBulkCreate(List<TaskRequest> requests);
+
+    AsyncBulkTaskStatusResponse getBulkCreateStatus(Long operationId);
+}
+
+
+Файл TaskAsyncServiceImpl.java
+
+package com.bsuir.taskmanager.service.impl;
+
+import com.bsuir.taskmanager.exception.AsyncBulkTaskOperationNotFoundException;
+import com.bsuir.taskmanager.model.dto.request.TaskRequest;
+import com.bsuir.taskmanager.model.dto.response.AsyncBulkTaskStatusResponse;
+import com.bsuir.taskmanager.service.TaskAsyncService;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class TaskAsyncServiceImpl implements TaskAsyncService {
+    private final TaskAsyncWorker taskAsyncWorker;
+    private final ConcurrentHashMap<Long, AsyncBulkTaskOperation> operations =
+            new ConcurrentHashMap<>();
+    private final AtomicLong operationIdGenerator = new AtomicLong();
+
+    @Override
+    public AsyncBulkTaskStatusResponse startBulkCreate(List<TaskRequest> requests) {
+        Long operationId = operationIdGenerator.incrementAndGet();
+        AsyncBulkTaskOperation operation = new AsyncBulkTaskOperation(operationId);
+        operations.put(operationId, operation);
+        taskAsyncWorker.processBulkCreate(operation, requests);
+        return operation.toResponse();
+    }
+
+    @Override
+    public AsyncBulkTaskStatusResponse getBulkCreateStatus(Long operationId) {
+        return Optional.ofNullable(operations.get(operationId))
+                .map(AsyncBulkTaskOperation::toResponse)
+                .orElseThrow(() -> new AsyncBulkTaskOperationNotFoundException(
+                        "Async bulk operation not found: " + operationId
+                ));
+    }
+}
+
+
+Файл TaskAsyncWorker.java
+
+package com.bsuir.taskmanager.service.impl;
+
+import com.bsuir.taskmanager.cache.TaskSearchCache;
+import com.bsuir.taskmanager.exception.ProjectNotFoundException;
+import com.bsuir.taskmanager.exception.TagsNotFoundException;
+import com.bsuir.taskmanager.exception.UserNotFoundException;
+import com.bsuir.taskmanager.mapper.TaskMapper;
+import com.bsuir.taskmanager.model.dto.request.TaskRequest;
+import com.bsuir.taskmanager.model.dto.response.AsyncBulkTaskStatusResponse;
+import com.bsuir.taskmanager.model.entity.Project;
+import com.bsuir.taskmanager.model.entity.Tag;
+import com.bsuir.taskmanager.model.entity.Task;
+import com.bsuir.taskmanager.model.entity.User;
+import com.bsuir.taskmanager.repository.ProjectRepository;
+import com.bsuir.taskmanager.repository.TagRepository;
+import com.bsuir.taskmanager.repository.TaskRepository;
+import com.bsuir.taskmanager.repository.UserRepository;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import lombok.RequiredArgsConstructor;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.stereotype.Component;
+
+@Component
+@RequiredArgsConstructor
+public class TaskAsyncWorker {
+    private static final long BULK_TASK_PROCESSING_DELAY_MS = 5_000L;
+
+    private final TaskRepository taskRepository;
+    private final ProjectRepository projectRepository;
+    private final UserRepository userRepository;
+    private final TagRepository tagRepository;
+    private final TaskMapper taskMapper;
+    private final TaskSearchCache taskSearchCache;
+
+    @Async
+    public CompletableFuture<AsyncBulkTaskStatusResponse> processBulkCreate(
+            AsyncBulkTaskOperation operation,
+            List<TaskRequest> requests
+    ) {
+        operation.markInProgress();
+        try {
+            for (TaskRequest request : requests) {
+                Task savedTask = saveTask(request);
+                pauseForDemo();
+                operation.recordCreatedTask(savedTask.getId());
+                taskSearchCache.clear();
+            }
+            operation.markCompleted();
+        } catch (RuntimeException ex) {
+            operation.markFailed(ex.getMessage());
+        }
+        return CompletableFuture.completedFuture(operation.toResponse());
+    }
+
+    private Task saveTask(TaskRequest request) {
+        Project project = getProject(request.getProjectId());
+        User assignee = getAssignee(request.getAssigneeId());
+        Set<Tag> tags = getTags(request.getTagIds());
+        Task task = taskMapper.fromRequest(request, project, assignee, tags);
+        return taskRepository.save(task);
+    }
+
+    private void pauseForDemo() {
+        try {
+            Thread.sleep(BULK_TASK_PROCESSING_DELAY_MS);
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Async bulk task processing was interrupted", ex);
+        }
+    }
+
+    private Project getProject(Long projectId) {
+        return projectRepository.findById(projectId)
+                .orElseThrow(() -> new ProjectNotFoundException("Project not found: " + projectId));
+    }
+
+    private User getAssignee(Long assigneeId) {
+        return Optional.ofNullable(assigneeId)
+                .map(id -> userRepository.findById(id)
+                        .orElseThrow(() -> new UserNotFoundException("User not found: " + id)))
+                .orElse(null);
+    }
+
+    private Set<Tag> getTags(Set<Long> tagIds) {
+        return Optional.ofNullable(tagIds)
+                .filter(ids -> !ids.isEmpty())
+                .map(this::loadTags)
+                .orElseGet(HashSet::new);
+    }
+
+    private Set<Tag> loadTags(Set<Long> tagIds) {
+        List<Tag> tags = tagRepository.findAllById(tagIds);
+        if (tags.size() != tagIds.size()) {
+            throw new TagsNotFoundException("Some tags not found");
+        }
+        return new HashSet<>(tags);
+    }
+}
+
+
+Файл AsyncBulkTaskOperation.java
+
+package com.bsuir.taskmanager.service.impl;
+
+import com.bsuir.taskmanager.model.dto.response.AsyncBulkTaskStatus;
+import com.bsuir.taskmanager.model.dto.response.AsyncBulkTaskStatusResponse;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+
+final class AsyncBulkTaskOperation {
+    private final Long operationId;
+    private final AtomicInteger processedTasks;
+    private final AtomicInteger createdTasks;
+    private final List<Long> createdTaskIds;
+    private volatile AsyncBulkTaskStatus status;
+    private volatile String errorMessage;
+
+    public AsyncBulkTaskOperation(Long operationId) {
+        this.operationId = operationId;
+        this.processedTasks = new AtomicInteger();
+        this.createdTasks = new AtomicInteger();
+        this.createdTaskIds = Collections.synchronizedList(new ArrayList<>());
+        this.status = AsyncBulkTaskStatus.PENDING;
+        this.errorMessage = null;
+    }
+
+    void markInProgress() {
+        status = AsyncBulkTaskStatus.IN_PROGRESS;
+    }
+
+    void recordCreatedTask(Long taskId) {
+        processedTasks.incrementAndGet();
+        createdTasks.incrementAndGet();
+        createdTaskIds.add(taskId);
+    }
+
+    void markCompleted() {
+        status = AsyncBulkTaskStatus.COMPLETED;
+    }
+
+    void markFailed(String message) {
+        status = AsyncBulkTaskStatus.FAILED;
+        errorMessage = message;
+    }
+
+    AsyncBulkTaskStatusResponse toResponse() {
+        synchronized (createdTaskIds) {
+            return new AsyncBulkTaskStatusResponse(
+                    operationId,
+                    status,
+                    processedTasks.get(),
+                    createdTasks.get(),
+                    new ArrayList<>(createdTaskIds),
+                    errorMessage
+            );
+        }
+    }
+}
+
+
+Файл AsyncBulkTaskStatus.java
+
+package com.bsuir.taskmanager.model.dto.response;
+
+public enum AsyncBulkTaskStatus {
+    PENDING,
+    IN_PROGRESS,
+    COMPLETED,
+    FAILED
+}
+
+
+Файл AsyncBulkTaskStatusResponse.java
+
+package com.bsuir.taskmanager.model.dto.response;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import java.util.List;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class AsyncBulkTaskStatusResponse {
+    @Schema(description = "Async bulk operation id", example = "1")
+    private Long operationId;
+
+    @Schema(description = "Current operation status", example = "IN_PROGRESS")
+    private AsyncBulkTaskStatus status;
+
+    @Schema(description = "How many tasks have been processed", example = "2")
+    private int processedTasks;
+
+    @Schema(description = "How many tasks have been created", example = "2")
+    private int createdTasks;
+
+    @Schema(description = "Created task ids", example = "[10, 11]")
+    private List<Long> createdTaskIds;
+
+    @Schema(description = "Error message if the operation failed", example = "")
+    private String errorMessage;
+}
+
+
+Файл DemoController.java
+
+package com.bsuir.taskmanager.controller;
+
+import com.bsuir.taskmanager.controller.api.DemoControllerApi;
+import com.bsuir.taskmanager.model.dto.response.RaceConditionDemoResponse;
+import com.bsuir.taskmanager.service.racecondition.RaceConditionDemoService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/api/demo")
+public class DemoController implements DemoControllerApi {
+    private final RaceConditionDemoService raceConditionDemoService;
+
+    @PostMapping("/race-condition")
+    public ResponseEntity<RaceConditionDemoResponse> runRaceConditionDemo()
+            throws InterruptedException {
+        return ResponseEntity.ok(raceConditionDemoService.runAllDemos());
+    }
+}
+
+
+Файл CounterServiceImpl.java
+
+package com.bsuir.taskmanager.service.racecondition;
+
+import java.util.concurrent.atomic.AtomicInteger;
+import org.springframework.stereotype.Service;
+
+@Service
+public class CounterServiceImpl {
+    private int unsafeValue;
+    private int synchronizedValue;
+    private final AtomicInteger atomicValue;
+
+    public CounterServiceImpl() {
+        this.atomicValue = new AtomicInteger();
+    }
+
+    public void incrementUnsafe() {
+        int currentValue = unsafeValue;
+        Thread.yield();
+        unsafeValue = currentValue + 1;
+    }
+
+    public synchronized void incrementSynchronized() {
+        synchronizedValue++;
+    }
+
+    public void incrementAtomic() {
+        atomicValue.incrementAndGet();
+    }
+
+    public synchronized void reset() {
+        unsafeValue = 0;
+        synchronizedValue = 0;
+        atomicValue.set(0);
+    }
+
+    public int getUnsafeValue() {
+        return unsafeValue;
+    }
+
+    public synchronized int getSynchronizedValue() {
+        return synchronizedValue;
+    }
+
+    public int getAtomicValue() {
+        return atomicValue.get();
+    }
+}
+
+
+Файл RaceConditionDemoService.java
+
+package com.bsuir.taskmanager.service.racecondition;
+
+import com.bsuir.taskmanager.model.dto.response.RaceConditionCounterResultResponse;
+import com.bsuir.taskmanager.model.dto.response.RaceConditionDemoResponse;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class RaceConditionDemoService {
+    private static final int THREAD_COUNT = 50;
+    private static final int INCREMENTS_PER_THREAD = 200;
+    private static final int EXPECTED_VALUE = THREAD_COUNT * INCREMENTS_PER_THREAD;
+
+    private final CounterServiceImpl counterService;
+
+    public RaceConditionCounterResultResponse demonstrateRaceCondition()
+            throws InterruptedException {
+        log.info("RACE CONDITION");
+        counterService.reset();
+        executeParallelIncrements(counterService::incrementUnsafe);
+        return logResults("Unsafe counter", counterService.getUnsafeValue());
+    }
+
+    public RaceConditionCounterResultResponse demonstrateSynchronizedSolution()
+            throws InterruptedException {
+        log.info("SYNCHRONIZED SOLUTION");
+        counterService.reset();
+        executeParallelIncrements(counterService::incrementSynchronized);
+        return logResults("Synchronized counter", counterService.getSynchronizedValue());
+    }
+
+    public RaceConditionCounterResultResponse demonstrateAtomicSolution()
+            throws InterruptedException {
+        log.info("ATOMIC SOLUTION");
+        counterService.reset();
+        executeParallelIncrements(counterService::incrementAtomic);
+        return logResults("Atomic counter", counterService.getAtomicValue());
+    }
+
+    public RaceConditionDemoResponse runAllDemos() throws InterruptedException {
+        log.info("Starting race condition demo with {} threads", THREAD_COUNT);
+        log.info("Each thread performs {} increments", INCREMENTS_PER_THREAD);
+        log.info("Expected final value: {}", EXPECTED_VALUE);
+
+        RaceConditionCounterResultResponse unsafeResult = demonstrateRaceCondition();
+        RaceConditionCounterResultResponse synchronizedResult = demonstrateSynchronizedSolution();
+        RaceConditionCounterResultResponse atomicResult = demonstrateAtomicSolution();
+        return new RaceConditionDemoResponse(
+                THREAD_COUNT,
+                INCREMENTS_PER_THREAD,
+                unsafeResult,
+                synchronizedResult,
+                atomicResult
+        );
+    }
+
+    private void executeParallelIncrements(Runnable incrementAction) throws InterruptedException {
+        ExecutorService executor = Executors.newFixedThreadPool(THREAD_COUNT);
+        try {
+            for (int i = 0; i < THREAD_COUNT; i++) {
+                executor.submit(() -> {
+                    for (int j = 0; j < INCREMENTS_PER_THREAD; j++) {
+                        incrementAction.run();
+                    }
+                });
+            }
+        } finally {
+            executor.shutdown();
+            executor.awaitTermination(1, TimeUnit.MINUTES);
+        }
+    }
+
+    private RaceConditionCounterResultResponse logResults(String counterName, int actualValue) {
+        int lostUpdates = EXPECTED_VALUE - actualValue;
+        boolean correct = actualValue == EXPECTED_VALUE;
+
+        log.info("{} result", counterName);
+        log.info("Expected value: {}", EXPECTED_VALUE);
+        log.info("Actual value: {}", actualValue);
+
+        if ("Unsafe counter".equals(counterName)) {
+            log.info("Lost updates: {}", lostUpdates);
+            log.info("Race condition present: {}", !correct);
+        } else {
+            log.info("Result is correct: {}", correct);
+        }
+
+        return new RaceConditionCounterResultResponse(
+                counterName,
+                EXPECTED_VALUE,
+                actualValue,
+                lostUpdates,
+                correct
+        );
+    }
+}
+
+
+Файл TaskAsyncServiceImplTest.java
+
+package com.bsuir.taskmanager.service.impl;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import com.bsuir.taskmanager.exception.AsyncBulkTaskOperationNotFoundException;
+import com.bsuir.taskmanager.model.dto.request.TaskRequest;
+import com.bsuir.taskmanager.model.dto.response.AsyncBulkTaskStatus;
+import com.bsuir.taskmanager.model.dto.response.AsyncBulkTaskStatusResponse;
+import com.bsuir.taskmanager.model.entity.TaskStatus;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+@ExtendWith(MockitoExtension.class)
+class TaskAsyncServiceImplTest {
+    @Mock
+    private TaskAsyncWorker taskAsyncWorker;
+
+    private TaskAsyncServiceImpl taskAsyncService;
+
+    @BeforeEach
+    void setUp() {
+        taskAsyncService = new TaskAsyncServiceImpl(taskAsyncWorker);
+    }
+
+    @Test
+    void startBulkCreateShouldReturnPendingOperationStatus() {
+        List<TaskRequest> requests = List.of(taskRequest("Async task"));
+
+        when(taskAsyncWorker.processBulkCreate(
+                any(AsyncBulkTaskOperation.class),
+                eq(requests)
+        )).thenReturn(CompletableFuture.completedFuture(null));
+
+        AsyncBulkTaskStatusResponse response = taskAsyncService.startBulkCreate(requests);
+
+        assertTrue(response.getOperationId() > 0);
+        assertEquals(AsyncBulkTaskStatus.PENDING, response.getStatus());
+        verify(taskAsyncWorker).processBulkCreate(
+                any(AsyncBulkTaskOperation.class),
+                eq(requests)
+        );
+    }
+
+    @Test
+    void getBulkCreateStatusShouldThrowWhenOperationMissing() {
+        assertThrows(
+                AsyncBulkTaskOperationNotFoundException.class,
+                () -> taskAsyncService.getBulkCreateStatus(99L)
+        );
+    }
+
+    private TaskRequest taskRequest(String title) {
+        return new TaskRequest(
+                title,
+                "Description for " + title,
+                TaskStatus.TODO,
+                LocalDate.now().plusDays(1),
+                1L,
+                1L,
+                Set.of(1L)
+        );
+    }
+}
+
+
+Файл TaskAsyncWorkerTest.java
+
+package com.bsuir.taskmanager.service.impl;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import com.bsuir.taskmanager.cache.TaskSearchCache;
+import com.bsuir.taskmanager.mapper.TaskMapper;
+import com.bsuir.taskmanager.model.dto.request.TaskRequest;
+import com.bsuir.taskmanager.model.dto.response.AsyncBulkTaskStatus;
+import com.bsuir.taskmanager.model.dto.response.AsyncBulkTaskStatusResponse;
+import com.bsuir.taskmanager.model.entity.Project;
+import com.bsuir.taskmanager.model.entity.Tag;
+import com.bsuir.taskmanager.model.entity.Task;
+import com.bsuir.taskmanager.model.entity.TaskStatus;
+import com.bsuir.taskmanager.model.entity.User;
+import com.bsuir.taskmanager.repository.ProjectRepository;
+import com.bsuir.taskmanager.repository.TagRepository;
+import com.bsuir.taskmanager.repository.TaskRepository;
+import com.bsuir.taskmanager.repository.UserRepository;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+@ExtendWith(MockitoExtension.class)
+class TaskAsyncWorkerTest {
+    @Mock
+    private TaskRepository taskRepository;
+    @Mock
+    private ProjectRepository projectRepository;
+    @Mock
+    private UserRepository userRepository;
+    @Mock
+    private TagRepository tagRepository;
+    @Mock
+    private TaskMapper taskMapper;
+    @Mock
+    private TaskSearchCache taskSearchCache;
+
+    private TaskAsyncWorker taskAsyncWorker;
+
+    @BeforeEach
+    void setUp() {
+        taskAsyncWorker = new TaskAsyncWorker(
+                taskRepository,
+                projectRepository,
+                userRepository,
+                tagRepository,
+                taskMapper,
+                taskSearchCache
+        );
+    }
+
+    @Test
+    void processBulkCreateShouldMarkOperationCompleted() {
+        AsyncBulkTaskOperation operation = new AsyncBulkTaskOperation(1L);
+        TaskRequest firstRequest = taskRequest("Async first");
+        TaskRequest secondRequest = taskRequest("Async second");
+        List<TaskRequest> requests = List.of(firstRequest, secondRequest);
+
+        Project project = project(1L);
+        User assignee = user(1L);
+        Tag tag = tag(1L);
+        Task firstTask = task(10L, "Async first");
+        Task secondTask = task(11L, "Async second");
+
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(assignee));
+        when(tagRepository.findAllById(Set.of(1L))).thenReturn(List.of(tag));
+        when(taskMapper.fromRequest(firstRequest, project, assignee, Set.of(tag)))
+                .thenReturn(firstTask);
+        when(taskMapper.fromRequest(secondRequest, project, assignee, Set.of(tag)))
+                .thenReturn(secondTask);
+        when(taskRepository.save(firstTask)).thenReturn(firstTask);
+        when(taskRepository.save(secondTask)).thenReturn(secondTask);
+
+        AsyncBulkTaskStatusResponse response = taskAsyncWorker
+                .processBulkCreate(operation, requests)
+                .join();
+
+        assertEquals(AsyncBulkTaskStatus.COMPLETED, response.getStatus());
+        assertEquals(2, response.getProcessedTasks());
+        assertEquals(2, response.getCreatedTasks());
+        assertEquals(List.of(10L, 11L), response.getCreatedTaskIds());
+        assertNull(response.getErrorMessage());
+        verify(taskSearchCache, times(2)).clear();
+    }
+
+    @Test
+    void processBulkCreateShouldMarkOperationFailedWhenProjectIsMissing() {
+        AsyncBulkTaskOperation operation = new AsyncBulkTaskOperation(2L);
+        List<TaskRequest> requests = List.of(taskRequest("Broken async task"));
+
+        when(projectRepository.findById(1L)).thenReturn(Optional.empty());
+
+        AsyncBulkTaskStatusResponse response = taskAsyncWorker
+                .processBulkCreate(operation, requests)
+                .join();
+
+        assertEquals(AsyncBulkTaskStatus.FAILED, response.getStatus());
+        assertEquals(0, response.getProcessedTasks());
+        assertEquals(0, response.getCreatedTasks());
+        assertEquals("Project not found: 1", response.getErrorMessage());
+    }
+
+    private TaskRequest taskRequest(String title) {
+        return new TaskRequest(
+                title,
+                "Description for " + title,
+                TaskStatus.TODO,
+                LocalDate.now().plusDays(1),
+                1L,
+                1L,
+                Set.of(1L)
+        );
+    }
+
+    private Project project(Long id) {
+        Project project = new Project();
+        project.setId(id);
+        return project;
+    }
+
+    private User user(Long id) {
+        User user = new User();
+        user.setId(id);
+        return user;
+    }
+
+    private Tag tag(Long id) {
+        Tag tag = new Tag();
+        tag.setId(id);
+        tag.setName("tag-" + id);
+        return tag;
+    }
+
+    private Task task(Long id, String title) {
+        Task task = new Task();
+        task.setId(id);
+        task.setTitle(title);
+        task.setStatus(TaskStatus.TODO);
+        return task;
+    }
+}
