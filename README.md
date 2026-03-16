@@ -35,3 +35,5 @@ This is a Java Spring Boot REST API for managing tasks in a simple task manageme
 ## Helpers
 - Swagger link - http://localhost:8080/swagger-ui/index.html
 - Checkstyle command - sh mvnw checkstyle:check
+- Coverage command - sh mvnw verify
+- Coverage report - target/site/jacoco/index.html

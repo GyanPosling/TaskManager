@@ -13,7 +13,10 @@ import static org.mockito.Mockito.when;
 import com.bsuir.taskmanager.cache.TaskSearchCache;
 import com.bsuir.taskmanager.cache.TaskSearchQueryKey;
 import com.bsuir.taskmanager.exception.BulkTaskCreationException;
+import com.bsuir.taskmanager.exception.ProjectNotFoundException;
+import com.bsuir.taskmanager.exception.TaskNotFoundException;
 import com.bsuir.taskmanager.exception.TagsNotFoundException;
+import com.bsuir.taskmanager.exception.UserNotFoundException;
 import com.bsuir.taskmanager.mapper.TaskMapper;
 import com.bsuir.taskmanager.model.dto.request.TaskRequest;
 import com.bsuir.taskmanager.model.dto.response.TaskResponse;
@@ -66,6 +69,204 @@ class TaskServiceImplTest {
                 taskMapper,
                 taskSearchCache
         );
+    }
+
+    @Test
+    void findAllShouldMapTasks() {
+        Task task = task(10L, "Backlog task");
+        TaskResponse response = taskResponse(10L, "Backlog task");
+
+        when(taskRepository.findAll()).thenReturn(List.of(task));
+        when(taskMapper.toResponse(task)).thenReturn(response);
+
+        List<TaskResponse> result = taskService.findAll();
+
+        assertEquals(List.of(response), result);
+    }
+
+    @Test
+    void findAllWithTagsShouldMapTasks() {
+        Task task = task(11L, "Tagged task");
+        TaskResponse response = taskResponse(11L, "Tagged task");
+
+        when(taskRepository.findAllWithTags()).thenReturn(List.of(task));
+        when(taskMapper.toResponse(task)).thenReturn(response);
+
+        List<TaskResponse> result = taskService.findAllWithTags();
+
+        assertEquals(List.of(response), result);
+    }
+
+    @Test
+    void findAllWithCommentsShouldMapTasks() {
+        Task task = task(12L, "Discussed task");
+        TaskResponse response = taskResponse(12L, "Discussed task");
+
+        when(taskRepository.findAllWithComments()).thenReturn(List.of(task));
+        when(taskMapper.toResponse(task)).thenReturn(response);
+
+        List<TaskResponse> result = taskService.findAllWithComments();
+
+        assertEquals(List.of(response), result);
+    }
+
+    @Test
+    void findByIdShouldReturnMappedTask() {
+        Task task = task(13L, "Single task");
+        TaskResponse response = taskResponse(13L, "Single task");
+
+        when(taskRepository.findById(13L)).thenReturn(Optional.of(task));
+        when(taskMapper.toResponse(task)).thenReturn(response);
+
+        TaskResponse result = taskService.findById(13L);
+
+        assertSame(response, result);
+    }
+
+    @Test
+    void findByIdShouldThrowWhenTaskMissing() {
+        when(taskRepository.findById(13L)).thenReturn(Optional.empty());
+
+        assertThrows(TaskNotFoundException.class, () -> taskService.findById(13L));
+    }
+
+    @Test
+    void findByStatusShouldMapTasks() {
+        Task task = task(14L, "Todo task");
+        TaskResponse response = taskResponse(14L, "Todo task");
+
+        when(taskRepository.findByStatus(TaskStatus.TODO)).thenReturn(List.of(task));
+        when(taskMapper.toResponse(task)).thenReturn(response);
+
+        List<TaskResponse> result = taskService.findByStatus(TaskStatus.TODO);
+
+        assertEquals(List.of(response), result);
+    }
+
+    @Test
+    void findByProjectOwnerAndStatusShouldLoadAndCachePageWhenCacheMisses() {
+        PageRequest pageable = PageRequest.of(0, 5);
+        Task task = task(30L, "Loaded task");
+        TaskResponse response = taskResponse(30L, "Loaded task");
+        Page<Task> tasksPage = new PageImpl<>(List.of(task), pageable, 1);
+        TaskSearchQueryKey cacheKey = TaskSearchQueryKey.forProjectOwnerAndStatus(
+                9L,
+                TaskStatus.TODO,
+                pageable
+        );
+
+        when(taskSearchCache.get(cacheKey)).thenReturn(Optional.empty());
+        when(taskRepository.findByProjectOwnerIdAndStatus(9L, TaskStatus.TODO, pageable))
+                .thenReturn(tasksPage);
+        when(taskMapper.toResponse(task)).thenReturn(response);
+
+        Page<TaskResponse> result = taskService.findByProjectOwnerAndStatus(
+                9L,
+                TaskStatus.TODO,
+                pageable
+        );
+
+        assertEquals(List.of(response), result.getContent());
+        verify(taskSearchCache).put(cacheKey, result);
+    }
+
+    @Test
+    void findByTagNameAndDueDateJpqlShouldReturnCachedPage() {
+        PageRequest pageable = PageRequest.of(0, 5);
+        LocalDate dueDate = LocalDate.of(2026, 3, 20);
+        TaskResponse response = taskResponse(40L, "Cached tag task");
+        Page<TaskResponse> cachedPage = new PageImpl<>(List.of(response), pageable, 1);
+        TaskSearchQueryKey cacheKey = TaskSearchQueryKey.forTagAndDueDateJpql(
+                "backend",
+                dueDate,
+                pageable
+        );
+
+        when(taskSearchCache.get(cacheKey)).thenReturn(Optional.of(cachedPage));
+
+        Page<TaskResponse> result = taskService.findByTagNameAndDueDateJpql(
+                "backend",
+                dueDate,
+                pageable
+        );
+
+        assertSame(cachedPage, result);
+    }
+
+    @Test
+    void findByTagNameAndDueDateJpqlShouldLoadAndCachePageWhenCacheMisses() {
+        PageRequest pageable = PageRequest.of(0, 5);
+        LocalDate dueDate = LocalDate.of(2026, 3, 20);
+        Task task = task(41L, "JPQL task");
+        TaskResponse response = taskResponse(41L, "JPQL task");
+        Page<Task> tasksPage = new PageImpl<>(List.of(task), pageable, 1);
+        TaskSearchQueryKey cacheKey = TaskSearchQueryKey.forTagAndDueDateJpql(
+                "backend",
+                dueDate,
+                pageable
+        );
+
+        when(taskSearchCache.get(cacheKey)).thenReturn(Optional.empty());
+        when(taskRepository.findByTagNameAndDueDateBeforeEqualJpql("backend", dueDate, pageable))
+                .thenReturn(tasksPage);
+        when(taskMapper.toResponse(task)).thenReturn(response);
+
+        Page<TaskResponse> result = taskService.findByTagNameAndDueDateJpql(
+                "backend",
+                dueDate,
+                pageable
+        );
+
+        assertEquals(List.of(response), result.getContent());
+        verify(taskSearchCache).put(cacheKey, result);
+    }
+
+    @Test
+    void findByTagNameAndDueDateNativeShouldLoadAndCachePageWhenCacheMisses() {
+        PageRequest pageable = PageRequest.of(0, 5);
+        LocalDate dueDate = LocalDate.of(2026, 3, 20);
+        Task task = task(42L, "Native task");
+        TaskResponse response = taskResponse(42L, "Native task");
+        Page<Task> tasksPage = new PageImpl<>(List.of(task), pageable, 1);
+        TaskSearchQueryKey cacheKey = TaskSearchQueryKey.forTagAndDueDateNative(
+                "backend",
+                dueDate,
+                pageable
+        );
+
+        when(taskSearchCache.get(cacheKey)).thenReturn(Optional.empty());
+        when(taskRepository.findByTagNameAndDueDateBeforeEqualNative("backend", dueDate, pageable))
+                .thenReturn(tasksPage);
+        when(taskMapper.toResponse(task)).thenReturn(response);
+
+        Page<TaskResponse> result = taskService.findByTagNameAndDueDateNative(
+                "backend",
+                dueDate,
+                pageable
+        );
+
+        assertEquals(List.of(response), result.getContent());
+        verify(taskSearchCache).put(cacheKey, result);
+    }
+
+    @Test
+    void createShouldThrowWhenProjectMissing() {
+        TaskRequest request = taskRequest("Assigned task", 1L, 5L, Set.of());
+
+        when(projectRepository.findById(1L)).thenReturn(Optional.empty());
+
+        assertThrows(ProjectNotFoundException.class, () -> taskService.create(request));
+    }
+
+    @Test
+    void createShouldThrowWhenAssigneeMissing() {
+        Project project = project(1L);
+        TaskRequest request = taskRequest("Assigned task", 1L, 5L, Set.of());
+
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(userRepository.findById(5L)).thenReturn(Optional.empty());
+
+        assertThrows(UserNotFoundException.class, () -> taskService.create(request));
     }
 
     @Test
@@ -140,6 +341,24 @@ class TaskServiceImplTest {
     }
 
     @Test
+    void createBulkTxShouldCreateAllTasksAndInvalidateCache() {
+        Project project = project(1L);
+        TaskRequest request = taskRequest("Transactional task", 1L, null, Set.of());
+        Task savedTask = task(23L, "Transactional task");
+        TaskResponse response = taskResponse(23L, "Transactional task");
+
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(taskMapper.fromRequest(request, project, null, Set.of())).thenReturn(savedTask);
+        when(taskRepository.save(savedTask)).thenReturn(savedTask);
+        when(taskMapper.toResponse(savedTask)).thenReturn(response);
+
+        List<TaskResponse> result = taskService.createBulkTx(List.of(request), 2);
+
+        assertEquals(List.of(response), result);
+        verify(taskSearchCache).clear();
+    }
+
+    @Test
     void findByProjectOwnerAndStatusShouldReturnCachedPage() {
         PageRequest pageable = PageRequest.of(0, 5);
         TaskResponse response = taskResponse(31L, "Cached task");
@@ -185,6 +404,58 @@ class TaskServiceImplTest {
 
         assertSame(response, result);
         verify(taskSearchCache).clear();
+    }
+
+    @Test
+    void updateShouldSaveTaskAndClearCache() {
+        Project project = project(1L);
+        User assignee = user(5L);
+        Tag firstTag = tag(7L);
+        Tag secondTag = tag(8L);
+        Set<Long> tagIds = Set.of(7L, 8L);
+        TaskRequest request = taskRequest("Updated task", 1L, 5L, tagIds);
+        Task existingTask = task(51L, "Old task");
+        TaskResponse response = taskResponse(51L, "Updated task");
+
+        when(taskRepository.findById(51L)).thenReturn(Optional.of(existingTask));
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(userRepository.findById(5L)).thenReturn(Optional.of(assignee));
+        when(tagRepository.findAllById(tagIds)).thenReturn(List.of(firstTag, secondTag));
+        when(taskRepository.save(existingTask)).thenReturn(existingTask);
+        when(taskMapper.toResponse(existingTask)).thenReturn(response);
+
+        TaskResponse result = taskService.update(51L, request);
+
+        assertSame(response, result);
+        assertSame(project, existingTask.getProject());
+        assertSame(assignee, existingTask.getAssignee());
+        verify(taskSearchCache).clear();
+    }
+
+    @Test
+    void updateShouldThrowWhenTaskMissing() {
+        TaskRequest request = taskRequest("Updated task", 1L, 5L, Set.of());
+
+        when(taskRepository.findById(51L)).thenReturn(Optional.empty());
+
+        assertThrows(TaskNotFoundException.class, () -> taskService.update(51L, request));
+    }
+
+    @Test
+    void deleteShouldRemoveTaskAndClearCache() {
+        when(taskRepository.existsById(61L)).thenReturn(true);
+
+        taskService.delete(61L);
+
+        verify(taskRepository).deleteById(61L);
+        verify(taskSearchCache).clear();
+    }
+
+    @Test
+    void deleteShouldThrowWhenTaskMissing() {
+        when(taskRepository.existsById(61L)).thenReturn(false);
+
+        assertThrows(TaskNotFoundException.class, () -> taskService.delete(61L));
     }
 
     private TaskRequest taskRequest(
