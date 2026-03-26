@@ -19,6 +19,8 @@ This is a Java Spring Boot REST API for managing tasks in a simple task manageme
 - Async bulk task creation with operation ID and status polling
 - Race condition demo with unsafe, `synchronized`, and `AtomicInteger` counters
 - 50-thread concurrency demo via `ExecutorService`
+- JMeter load testing scenario for real REST API endpoints
+- CLI-ready JMeter report generation instructions
 - Validation for incoming requests
 - Composite creation demo showing partial save vs transactional rollback
 - Service execution time logging via Spring AOP
@@ -37,3 +39,5 @@ This is a Java Spring Boot REST API for managing tasks in a simple task manageme
 - Checkstyle command - sh mvnw checkstyle:check
 - Coverage command - sh mvnw verify
 - Coverage report - target/site/jacoco/index.html
+- JMeter assets - `docs/jmeter/taskmanager-load-test.jmx`
+- JMeter guide - `docs/jmeter/README.md`

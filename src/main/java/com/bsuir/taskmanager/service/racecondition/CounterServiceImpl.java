@@ -1,9 +1,7 @@
 package com.bsuir.taskmanager.service.racecondition;
 
 import java.util.concurrent.atomic.AtomicInteger;
-import org.springframework.stereotype.Service;
 
-@Service
 public class CounterServiceImpl {
     private int unsafeValue;
     private int synchronizedValue;

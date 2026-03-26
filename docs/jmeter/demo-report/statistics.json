@@ -1,0 +1,34 @@
+{
+  "POST /api/demo/race-condition" : {
+    "transaction" : "POST /api/demo/race-condition",
+    "sampleCount" : 50,
+    "errorCount" : 50,
+    "errorPct" : 100.0,
+    "meanResTime" : 5007.099999999999,
+    "medianResTime" : 5007.0,
+    "minResTime" : 5002.0,
+    "maxResTime" : 5025.0,
+    "pct1ResTime" : 5008.0,
+    "pct2ResTime" : 5008.0,
+    "pct3ResTime" : 5025.0,
+    "throughput" : 1.9328153388225289,
+    "receivedKBytesPerSec" : 5.194441223085547,
+    "sentKBytesPerSec" : 0.0
+  },
+  "Total" : {
+    "transaction" : "Total",
+    "sampleCount" : 50,
+    "errorCount" : 50,
+    "errorPct" : 100.0,
+    "meanResTime" : 5007.099999999999,
+    "medianResTime" : 5007.0,
+    "minResTime" : 5002.0,
+    "maxResTime" : 5025.0,
+    "pct1ResTime" : 5008.0,
+    "pct2ResTime" : 5008.0,
+    "pct3ResTime" : 5025.0,
+    "throughput" : 1.9328153388225289,
+    "receivedKBytesPerSec" : 5.194441223085547,
+    "sentKBytesPerSec" : 0.0
+  }
+}
