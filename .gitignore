@@ -54,3 +54,8 @@ logs/
 # Frontend
 frontend/node_modules/
 frontend/dist/
+
+# JMeter artifacts
+docs/jmeter/
+apache-jmeter-5.6.3/
+apache-jmeter-5.6.3.tgz
