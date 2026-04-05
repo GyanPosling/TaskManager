@@ -11,6 +11,7 @@ import java.util.List;
 import org.springframework.http.ResponseEntity;
 
 @Tag(name = "Comments", description = "Comment CRUD operations")
+@UnauthorizedApiResponse
 public interface CommentControllerApi {
     @Operation(summary = "Get all comments")
     @ApiResponse(responseCode = "200", description = "Comments returned")

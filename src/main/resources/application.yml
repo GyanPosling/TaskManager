@@ -18,3 +18,7 @@ spring:
   docker:
     compose:
       enabled: ${DOCKER_COMPOSE_ENABLED}
+
+jwt:
+  secret: ${JWT_SECRET:my-dev-super-secret-key-for-jwt-change-me-token}
+  expiration: ${JWT_EXPIRATION_MS:86400000}

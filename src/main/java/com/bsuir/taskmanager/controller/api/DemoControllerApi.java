@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 
 @Tag(name = "Demo", description = "Demo endpoints for lab requirements")
+@UnauthorizedApiResponse
 public interface DemoControllerApi {
     @Operation(summary = "Run race condition demo")
     @ApiResponse(responseCode = "200", description = "Race condition demo completed")

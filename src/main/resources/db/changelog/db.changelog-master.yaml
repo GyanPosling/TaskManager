@@ -13,3 +13,5 @@ databaseChangeLog:
       file: db/changelog/changes/006-create-task-tags.yaml
   - include:
       file: db/changelog/changes/007-task-status-enum.yaml
+  - include:
+      file: db/changelog/changes/008-add-user-password-hash.yaml

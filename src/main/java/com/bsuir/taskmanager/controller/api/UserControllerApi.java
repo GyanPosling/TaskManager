@@ -11,6 +11,7 @@ import java.util.List;
 import org.springframework.http.ResponseEntity;
 
 @Tag(name = "Users", description = "User CRUD operations")
+@UnauthorizedApiResponse
 public interface UserControllerApi {
     @Operation(summary = "Get all users")
     @ApiResponse(responseCode = "200", description = "Users returned")

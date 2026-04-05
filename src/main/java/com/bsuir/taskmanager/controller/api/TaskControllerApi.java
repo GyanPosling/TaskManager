@@ -22,6 +22,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 
 @Tag(name = "Tasks", description = "Task CRUD operations")
+@UnauthorizedApiResponse
 public interface TaskControllerApi {
     String BULK_TASKS_REQUEST_EXAMPLE = """
             [

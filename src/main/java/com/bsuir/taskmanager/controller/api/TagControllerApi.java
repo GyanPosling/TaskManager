@@ -11,6 +11,7 @@ import java.util.List;
 import org.springframework.http.ResponseEntity;
 
 @Tag(name = "Tags", description = "Tag CRUD operations")
+@UnauthorizedApiResponse
 public interface TagControllerApi {
     @Operation(summary = "Get all tags")
     @ApiResponse(responseCode = "200", description = "Tags returned")

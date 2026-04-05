@@ -11,6 +11,7 @@ public interface UserMapper {
     UserResponse toResponse(User user);
 
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "passwordHash", ignore = true)
     @Mapping(target = "assignedTasks", ignore = true)
     @Mapping(target = "comments", ignore = true)
     @Mapping(target = "ownedProjects", ignore = true)

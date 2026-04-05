@@ -1,6 +1,7 @@
 package com.bsuir.taskmanager.exception;
 
 import com.bsuir.taskmanager.model.dto.response.ErrorResponse;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import java.time.Instant;
@@ -46,6 +47,28 @@ public class RestExceptionHandler {
                 request.getRequestURI(), null);
     }
 
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidCredentials(
+            InvalidCredentialsException ex,
+            HttpServletRequest request
+    ) {
+        log.debug(
+                "Authentication failed for path {}: {}",
+                request.getRequestURI(),
+                ex.getMessage()
+        );
+        return buildError(HttpStatus.UNAUTHORIZED, ex.getMessage(), request.getRequestURI(), null);
+    }
+
+    @ExceptionHandler(JwtException.class)
+    public ResponseEntity<ErrorResponse> handleJwtException(
+            JwtException ex,
+            HttpServletRequest request
+    ) {
+        log.debug("JWT error for path {}: {}", request.getRequestURI(), ex.getMessage());
+        return buildError(HttpStatus.UNAUTHORIZED, ex.getMessage(), request.getRequestURI(), null);
+    }
+
     @ExceptionHandler(EmailAlreadyExistsException.class)
     public ResponseEntity<ErrorResponse> handleEmailAlreadyExists(
             EmailAlreadyExistsException ex,
@@ -53,6 +76,17 @@ public class RestExceptionHandler {
         Map<String, String> fieldErrors = new LinkedHashMap<>();
         fieldErrors.put("email", ex.getMessage());
         log.debug("Email conflict for path {}: {}", request.getRequestURI(), ex.getMessage());
+        return buildError(HttpStatus.CONFLICT, ex.getMessage(),
+                request.getRequestURI(), fieldErrors);
+    }
+
+    @ExceptionHandler(UsernameAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleUsernameAlreadyExists(
+            UsernameAlreadyExistsException ex,
+            HttpServletRequest request) {
+        Map<String, String> fieldErrors = new LinkedHashMap<>();
+        fieldErrors.put("username", ex.getMessage());
+        log.debug("Username conflict for path {}: {}", request.getRequestURI(), ex.getMessage());
         return buildError(HttpStatus.CONFLICT, ex.getMessage(),
                 request.getRequestURI(), fieldErrors);
     }

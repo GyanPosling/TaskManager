@@ -35,6 +35,9 @@ public class User {
     @Column(nullable = false, unique = true, length = 255)
     private String email;
 
+    @Column(name = "password_hash", length = 255)
+    private String passwordHash;
+
     @OneToMany(mappedBy = "assignee", fetch = FetchType.LAZY)
     private Set<Task> assignedTasks = new HashSet<>();
 
