@@ -50,3 +50,16 @@ This project contains:
 ```bash
 docker compose up --build
 ```
+
+## Deploy to Railway (backend)
+- Create a PostgreSQL service in Railway.
+- Create a service for this repository (Dockerfile deploy).
+- Set environment variable `JWT_SECRET` in Railway.
+- Do not set `DB_HOST=localhost` for Railway.
+- App now supports Railway Postgres variables out of the box:
+  - `PGHOST`
+  - `PGPORT`
+  - `PGDATABASE`
+  - `PGUSER`
+  - `PGPASSWORD`
+- Railway provides `PORT`; app is configured to bind to it automatically.
