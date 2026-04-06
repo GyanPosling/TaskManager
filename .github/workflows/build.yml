@@ -123,6 +123,10 @@ jobs:
           RAILWAY_SERVICE_ID: ${{ vars.RAILWAY_SERVICE_ID }}
           RAILWAY_ENVIRONMENT_ID: ${{ vars.RAILWAY_ENVIRONMENT_ID }}
         run: |
+          RAILWAY_TOKEN="$(printf '%s' "${RAILWAY_TOKEN}" | tr -d '\r\n' | xargs)"
+          RAILWAY_SERVICE_ID="$(printf '%s' "${RAILWAY_SERVICE_ID}" | tr -d '\r\n' | xargs)"
+          RAILWAY_ENVIRONMENT_ID="$(printf '%s' "${RAILWAY_ENVIRONMENT_ID}" | tr -d '\r\n' | xargs)"
+
           if [ -z "${RAILWAY_TOKEN}" ] || [ -z "${RAILWAY_SERVICE_ID}" ] || [ -z "${RAILWAY_ENVIRONMENT_ID}" ]; then
             echo "Missing required GitHub config."
             echo "Required: secret RAILWAY_TOKEN; vars RAILWAY_SERVICE_ID and RAILWAY_ENVIRONMENT_ID"
@@ -142,6 +146,8 @@ jobs:
         env:
           APP_HEALTHCHECK_URL: ${{ vars.APP_HEALTHCHECK_URL }}
         run: |
+          APP_HEALTHCHECK_URL="$(printf '%s' "${APP_HEALTHCHECK_URL}" | tr -d '\r\n' | xargs)"
+
           if [ -z "${APP_HEALTHCHECK_URL}" ]; then
             echo "Missing required GitHub variable APP_HEALTHCHECK_URL"
             exit 1
