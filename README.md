@@ -43,23 +43,7 @@ This project contains:
 - Frontend app - http://localhost:3000
 - Swagger link - http://localhost:8080/swagger-ui/index.html
 - Domain link - https://taskmangerfrontend-production.up.railway.app/
+- Backend url - https://taskmanager-production-369e.up.railway.app/actuator/health
 - Checkstyle command - sh mvnw checkstyle:check
 - Coverage command - sh mvnw verify
-
-## GitHub CI/CD
-- Workflow file: `.github/workflows/build.yml`
-- Stages: backend build, backend tests, frontend build, deployment (Railway), post-deploy healthcheck
-
-### Required GitHub Secrets
-- `RAILWAY_TOKEN` - Railway API token for CI deployment
-- `SONAR_TOKEN` - optional, used for Sonar analysis on non-PR events
-
-### Required GitHub Variables
-- `RAILWAY_SERVICE_ID` - target Railway service id
-- `RAILWAY_ENVIRONMENT_ID` - target Railway environment id
-- `APP_HEALTHCHECK_URL` - public health endpoint URL (for example `https://<your-app-domain>/actuator/health`)
-
-### Deploy Trigger
-- Deploy and healthcheck run only on `push` to `main`
-- Pull requests run build and tests only
 
