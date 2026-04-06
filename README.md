@@ -46,6 +46,10 @@ This project contains:
 - JMeter assets - `docs/jmeter/taskmanager-load-test.jmx`
 - JMeter guide - `docs/jmeter/README.md`
 
+## Local .env
+- Use `.env.example` as a template and create your local `.env`.
+- `.env` is gitignored and should not be committed.
+
 ## Run with Docker Compose
 ```bash
 docker compose up --build

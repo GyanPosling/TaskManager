@@ -20,7 +20,7 @@ spring:
       enabled: ${DOCKER_COMPOSE_ENABLED:false}
 
 jwt:
-  secret: ${JWT_SECRET:my-dev-super-secret-key-for-jwt-change-me-token}
+  secret: ${JWT_SECRET}
   expiration: ${JWT_EXPIRATION_MS:86400000}
 
 server:
