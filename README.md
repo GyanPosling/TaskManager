@@ -5,7 +5,9 @@
 ### [ER-Diagram](docs/ER-Diagramm.png)
 
 ## Overview
-This is a Java Spring Boot REST API for managing tasks in a simple task management domain.
+This project contains:
+- Java Spring Boot REST API for managing tasks in a simple task management domain
+- Separate React frontend service (Vite build + Nginx runtime)
 
 ## Features
 - CRUD for users, projects, tasks, tags, and comments
@@ -28,6 +30,7 @@ This is a Java Spring Boot REST API for managing tasks in a simple task manageme
 - OpenAPI documentation via Springdoc
 - PostgreSQL schema migrations via Liquibase
 - Docker Compose setup for app + PostgreSQL
+- Docker Compose setup for app + frontend + PostgreSQL
 
 ## Notes
 - Maximum page size for the new paginated task search endpoints is limited to `10`
@@ -35,9 +38,15 @@ This is a Java Spring Boot REST API for managing tasks in a simple task manageme
 - Cache is cleared after task, project, or tag updates
 
 ## Helpers
+- Frontend app - http://localhost:3000
 - Swagger link - http://localhost:8080/swagger-ui/index.html
 - Checkstyle command - sh mvnw checkstyle:check
 - Coverage command - sh mvnw verify
 - Coverage report - target/site/jacoco/index.html
 - JMeter assets - `docs/jmeter/taskmanager-load-test.jmx`
 - JMeter guide - `docs/jmeter/README.md`
+
+## Run with Docker Compose
+```bash
+docker compose up --build
+```
