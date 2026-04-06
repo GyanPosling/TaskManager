@@ -67,3 +67,12 @@ docker compose up --build
   - `PGUSER`
   - `PGPASSWORD`
 - Railway provides `PORT`; app is configured to bind to it automatically.
+
+## Deploy to Railway (frontend)
+- Create a second Railway service from this same repo.
+- Set `Root Directory` to `frontend`.
+- Keep Dockerfile deploy enabled for this service.
+- Set frontend variable `BACKEND_URL`:
+  - internal URL example: `http://<backend-private-domain>:8080`
+  - or public backend URL if needed.
+- Frontend Nginx proxies `/api/*` to `BACKEND_URL`.
