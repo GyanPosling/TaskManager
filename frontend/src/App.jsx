@@ -696,16 +696,23 @@ function TaskModal({ mode, task, projects, tags, currentUserName, onClose, onSub
 function ProjectModal({ project, ownerId, onClose, onSubmit }) {
   const [name, setName] = useState(project?.name || '');
   const [description, setDescription] = useState(project?.description || '');
+  const [submitError, setSubmitError] = useState('');
 
-  function submit(event) {
+  async function submit(event) {
     event.preventDefault();
-    onSubmit({ name, description, ownerId });
+    setSubmitError('');
+    try {
+      await onSubmit({ name, description, ownerId });
+    } catch (err) {
+      setSubmitError(err.message || 'Failed to save project');
+    }
   }
 
   return (
     <div className="overlay" onClick={onClose}>
       <form className="modal card" onClick={(e) => e.stopPropagation()} onSubmit={submit}>
         <h3>{project ? 'Edit project' : 'Create project'}</h3>
+        {submitError && <div className="error-box">{submitError}</div>}
         <label className="field">
           <span>Name</span>
           <input required maxLength={150} value={name} onChange={(e) => setName(e.target.value)} />
