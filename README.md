@@ -31,6 +31,8 @@ This project contains:
 - PostgreSQL schema migrations via Liquibase
 - Docker Compose setup for app + PostgreSQL
 - Docker Compose setup for app + frontend + PostgreSQL
+- CI/CD implemenatation
+- Posting on Workd Wide Web via Railway
 
 ## Notes
 - Maximum page size for the new paginated task search endpoints is limited to `10`
@@ -40,39 +42,8 @@ This project contains:
 ## Helpers
 - Frontend app - http://localhost:3000
 - Swagger link - http://localhost:8080/swagger-ui/index.html
+- Domain link - https://taskmangerfrontend-production.up.railway.app/
 - Checkstyle command - sh mvnw checkstyle:check
 - Coverage command - sh mvnw verify
-- Coverage report - target/site/jacoco/index.html
-- JMeter assets - `docs/jmeter/taskmanager-load-test.jmx`
-- JMeter guide - `docs/jmeter/README.md`
 
-## Local .env
-- Use `.env.example` as a template and create your local `.env`.
-- `.env` is gitignored and should not be committed.
 
-## Run with Docker Compose
-```bash
-docker compose up --build
-```
-
-## Deploy to Railway (backend)
-- Create a PostgreSQL service in Railway.
-- Create a service for this repository (Dockerfile deploy).
-- Set environment variable `JWT_SECRET` in Railway.
-- Do not set `DB_HOST=localhost` for Railway.
-- App now supports Railway Postgres variables out of the box:
-  - `PGHOST`
-  - `PGPORT`
-  - `PGDATABASE`
-  - `PGUSER`
-  - `PGPASSWORD`
-- Railway provides `PORT`; app is configured to bind to it automatically.
-
-## Deploy to Railway (frontend)
-- Create a second Railway service from this same repo.
-- Set `Root Directory` to `frontend`.
-- Keep Dockerfile deploy enabled for this service.
-- Set frontend variable `BACKEND_URL`:
-  - internal URL example: `http://<backend-private-domain>:8080`
-  - or public backend URL if needed.
-- Frontend Nginx proxies `/api/*` to `BACKEND_URL`.
