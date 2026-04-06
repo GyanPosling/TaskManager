@@ -70,10 +70,15 @@ jobs:
         run: sh mvnw -B test
 
       - name: SonarQube analysis
-        if: ${{ github.event_name != 'pull_request' && secrets.SONAR_TOKEN != '' }}
+        if: ${{ github.event_name != 'pull_request' }}
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: sh mvnw -B org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=GyanPosling_TaskManager
+        run: |
+          if [ -z "${SONAR_TOKEN}" ]; then
+            echo "SONAR_TOKEN is not set. Skipping SonarQube analysis."
+            exit 0
+          fi
+          sh mvnw -B org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=GyanPosling_TaskManager
 
   frontend:
     name: Frontend Build
