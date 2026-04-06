@@ -5,7 +5,6 @@ import com.bsuir.taskmanager.security.JwtService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
@@ -44,11 +43,11 @@ public class JwtServiceImpl implements JwtService {
         Date expiresAt = new Date(now + tokenExpiration);
 
         return Jwts.builder()
-                .setSubject(userDetails.getUsername())
-                .addClaims(claims)
-                .setIssuedAt(issuedAt)
-                .setExpiration(expiresAt)
-                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
+                .subject(userDetails.getUsername())
+                .claims(claims)
+                .issuedAt(issuedAt)
+                .expiration(expiresAt)
+                .signWith(getSigningKey())
                 .compact();
     }
 

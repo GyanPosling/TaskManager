@@ -3,7 +3,6 @@ package com.bsuir.taskmanager.service.impl;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -137,7 +136,7 @@ class AuthServiceImplTest {
         assertSame("jwt-token", result.getAccessToken());
         assertSame("Bearer", result.getTokenType());
         verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
-        verify(jwtService).generateAccessToken(eq(userDetails));
+        verify(jwtService).generateAccessToken(userDetails);
     }
 
     @Test

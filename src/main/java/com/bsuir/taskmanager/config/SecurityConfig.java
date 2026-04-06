@@ -33,7 +33,7 @@ public class SecurityConfig {
             JwtAuthenticationFilter jwtAuthenticationFilter,
             JwtAuthenticationEntryPoint authenticationEntryPoint,
             JwtAccessDeniedHandler accessDeniedHandler
-    ) throws Exception {
+    ) {
         http
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .csrf(AbstractHttpConfigurer::disable)
@@ -77,7 +77,7 @@ public class SecurityConfig {
     @Bean
     public AuthenticationManager authenticationManager(
             AuthenticationConfiguration authenticationConfiguration
-    ) throws Exception {
+    ) {
         return authenticationConfiguration.getAuthenticationManager();
     }
 }

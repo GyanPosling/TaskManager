@@ -10,14 +10,26 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 @RequiredArgsConstructor
 public class AuthUserDetails implements UserDetails {
-    private final User user;
+    private static final long serialVersionUID = 1L;
+
+    private final Long userId;
+    private final String email;
+    private final String username;
+    private final String passwordHash;
+
+    public AuthUserDetails(User user) {
+        this.userId = user.getId();
+        this.email = user.getEmail();
+        this.username = user.getUsername();
+        this.passwordHash = user.getPasswordHash();
+    }
 
     public Long getUserId() {
-        return user.getId();
+        return userId;
     }
 
     public String getEmail() {
-        return user.getEmail();
+        return email;
     }
 
     @Override
@@ -27,12 +39,12 @@ public class AuthUserDetails implements UserDetails {
 
     @Override
     public String getPassword() {
-        return user.getPasswordHash();
+        return passwordHash;
     }
 
     @Override
     public String getUsername() {
-        return user.getUsername();
+        return username;
     }
 
     @Override
