@@ -8,13 +8,12 @@ on:
     types: [opened, synchronize, reopened]
   workflow_dispatch:
 
-permissions:
-  contents: read
-
 jobs:
   backend:
     name: Backend Build and Test
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     timeout-minutes: 20
     services:
       postgres:
@@ -83,6 +82,8 @@ jobs:
   frontend:
     name: Frontend Build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     timeout-minutes: 10
     defaults:
       run:
@@ -107,6 +108,8 @@ jobs:
   deploy:
     name: Deploy to Railway
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     timeout-minutes: 15
     needs: [backend, frontend]
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
