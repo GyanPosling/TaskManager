@@ -65,11 +65,10 @@ jobs:
       - name: Build (without tests)
         run: sh mvnw -B -DskipTests package
 
-      - name: Run tests
-        run: sh mvnw -B test
+      - name: Run tests and coverage report
+        run: sh mvnw -B verify
 
       - name: SonarQube analysis
-        if: ${{ github.event_name != 'pull_request' }}
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
