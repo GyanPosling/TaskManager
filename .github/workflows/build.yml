@@ -143,6 +143,7 @@ jobs:
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     steps:
       - name: Check deployed app health
+      
         env:
           APP_HEALTHCHECK_URL: ${{ vars.APP_HEALTHCHECK_URL }}
         run: |
