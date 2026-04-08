@@ -47,3 +47,4 @@ This project contains:
 - Checkstyle command - sh mvnw checkstyle:check
 - Coverage command - sh mvnw verify
 
+

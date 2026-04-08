@@ -671,10 +671,11 @@ function DashboardPage() {
                   </header>
                   <p>{candidate.email}</p>
                   <div className="tiny-list">
-                    {candidateTaskList.slice(0, 3).map((task) => (
-                      <span key={task.id}>{task.title}</span>
+                    <strong className="tiny-list-title">Task:</strong>
+                    {candidateTaskList.slice(0, 3).map((task, index) => (
+                      <span key={task.id}>{index + 1}. {task.title}</span>
                     ))}
-                    {!candidateTaskList.length && <span>No planned tasks</span>}
+                    {!candidateTaskList.length && <span>1. No planned tasks</span>}
                   </div>
                 </article>
               );
