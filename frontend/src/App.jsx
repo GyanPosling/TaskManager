@@ -200,9 +200,10 @@ function DashboardPage() {
 
   const [taskModal, setTaskModal] = useState({ open: false, mode: 'create', task: null });
   const [projectModal, setProjectModal] = useState({ open: false, project: null });
-  const [taskDetailsModal, setTaskDetailsModal] = useState({ type: null, taskId: null });
+  const [taskDetailsModal, setTaskDetailsModal] = useState({ open: false, taskId: null, source: 'board' });
+  const [commentModal, setCommentModal] = useState({ open: false, taskId: null });
+  const [tagModal, setTagModal] = useState({ open: false, taskId: null });
   const [selectedUser, setSelectedUser] = useState(null);
-  const [expandedProjectId, setExpandedProjectId] = useState(null);
 
   useEffect(() => {
     if (!user) {
@@ -347,9 +348,6 @@ function DashboardPage() {
     }
     setProjects((prev) => prev.filter((project) => project.id !== projectId));
     setTasks((prev) => prev.filter((task) => task.projectId !== projectId));
-    if (expandedProjectId === projectId) {
-      setExpandedProjectId(null);
-    }
   }
 
   async function submitTask(payload) {
@@ -379,7 +377,7 @@ function DashboardPage() {
   async function removeTask(taskId) {
     await apiFetch(`/api/tasks/${taskId}`, { method: 'DELETE' });
     if (taskDetailsModal.taskId === taskId) {
-      setTaskDetailsModal({ type: null, taskId: null });
+      setTaskDetailsModal({ open: false, taskId: null, source: 'board' });
     }
     setTasks((prev) => prev.filter((task) => task.id !== taskId));
     setComments((prev) => prev.filter((comment) => comment.taskId !== taskId));
@@ -394,46 +392,62 @@ function DashboardPage() {
     setComments((prev) => [...prev, created]);
   }
 
+  async function submitComment(text) {
+    if (!commentModal.taskId) {
+      return;
+    }
+    await addComment(commentModal.taskId, text.trim());
+    setCommentModal({ open: false, taskId: null });
+  }
+
   async function createTag(name) {
-    const created = await apiFetch('/api/tags', {
+    const normalizedName = name.trim();
+    if (!normalizedName) {
+      throw new Error('Tag name is required');
+    }
+
+    const existingTag = tags.find(
+      (tag) => tag.name.trim().toLowerCase() === normalizedName.toLowerCase()
+    );
+    if (existingTag) {
+      return existingTag;
+    }
+
+    const createdTag = await apiFetch('/api/tags', {
       method: 'POST',
-      body: JSON.stringify({ name })
+      body: JSON.stringify({ name: normalizedName })
     });
 
-    setTags((prev) => (prev.some((tag) => tag.id === created.id) ? prev : [...prev, created]));
-    return created.id;
+    setTags((prev) => [...prev, createdTag]);
+    return createdTag;
   }
 
-  async function appendTags(taskId, tagIds) {
-    const currentTask = tasks.find((task) => task.id === taskId);
-    if (!currentTask) {
+  async function submitTaskTags(tagIds) {
+    if (!tagModal.taskId) {
       return;
     }
 
-    const nextTagIds = Array.from(new Set([...(currentTask.tagIds || []), ...tagIds]));
-    if (!nextTagIds.length) {
+    const targetTask = tasks.find((task) => task.id === tagModal.taskId);
+    if (!targetTask) {
+      setTagModal({ open: false, taskId: null });
       return;
     }
 
-    const updatedTask = await apiFetch(`/api/tasks/${taskId}`, {
+    const updatedTask = await apiFetch(`/api/tasks/${targetTask.id}`, {
       method: 'PUT',
-      body: JSON.stringify(taskToRequest(currentTask, { tagIds: nextTagIds, assigneeId: user.id }))
+      body: JSON.stringify(taskToRequest(targetTask, { tagIds }))
     });
-    setTasks((prev) => prev.map((task) => (task.id === taskId ? updatedTask : task)));
+
+    setTasks((prev) => prev.map((task) => (task.id === updatedTask.id ? updatedTask : task)));
+    setTagModal({ open: false, taskId: null });
   }
 
-  async function removeTag(taskId, tagId) {
-    const currentTask = tasks.find((task) => task.id === taskId);
-    if (!currentTask) {
-      return;
-    }
+  function openTaskDetails(taskId, source = 'board') {
+    setTaskDetailsModal({ open: true, taskId, source });
+  }
 
-    const nextTagIds = (currentTask.tagIds || []).filter((id) => id !== tagId);
-    const updatedTask = await apiFetch(`/api/tasks/${taskId}`, {
-      method: 'PUT',
-      body: JSON.stringify(taskToRequest(currentTask, { tagIds: nextTagIds, assigneeId: user.id }))
-    });
-    setTasks((prev) => prev.map((task) => (task.id === taskId ? updatedTask : task)));
+  function closeTaskDetails() {
+    setTaskDetailsModal({ open: false, taskId: null, source: 'board' });
   }
 
   if (loading) {
@@ -467,7 +481,7 @@ function DashboardPage() {
             All my tasks
           </button>
           {myProjects.map((project) => (
-            <div className={expandedProjectId === project.id ? 'project-row expanded' : 'project-row'} key={project.id}>
+            <div className="project-row" key={project.id}>
               <div className="project-main-row">
                 <button
                   className={String(project.id) === projectFilter ? 'pill active' : 'pill'}
@@ -476,13 +490,6 @@ function DashboardPage() {
                   <span>{project.name}</span>
                 </button>
                 <div className="row-actions">
-                  <button
-                    className="icon-btn"
-                    onClick={() => setExpandedProjectId((prev) => (prev === project.id ? null : project.id))}
-                    aria-label="Toggle project tasks"
-                  >
-                    {expandedProjectId === project.id ? '−' : '+'}
-                  </button>
                   <button className="icon-btn" onClick={() => setProjectModal({ open: true, project })}>
                     <PencilIcon />
                   </button>
@@ -502,8 +509,12 @@ function DashboardPage() {
                       {(myTasksByProjectAndStatus[project.id]?.[status] || []).slice(0, 3).map((task) => (
                         <button
                           key={task.id}
+                          type="button"
                           className="project-task-link"
-                          onClick={() => setTaskDetailsModal({ type: 'comments', taskId: task.id })}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            openTaskDetails(task.id, 'preview');
+                          }}
                         >
                           {task.title}
                         </button>
@@ -538,7 +549,14 @@ function DashboardPage() {
           <button
             className="btn btn-primary"
             disabled={!myProjects.length}
-            onClick={() => setTaskModal({ open: true, mode: 'create', task: null })}
+            onClick={() => {
+              const defaultProjectId = projectFilter === 'all' ? myProjects[0]?.id : Number(projectFilter);
+              setTaskModal({
+                open: true,
+                mode: 'create',
+                task: taskToRequest(null, { projectId: defaultProjectId || '' })
+              });
+            }}
           >
             + Add task
           </button>
@@ -553,12 +571,28 @@ function DashboardPage() {
               </header>
               <div className="card-list">
                 {tasksByStatus[status].map((task) => (
-                  <article className="task-card" key={task.id}>
+                  <article
+                    className="task-card clickable"
+                    key={task.id}
+                    onClick={() => openTaskDetails(task.id)}
+                  >
                     <div className="task-actions">
-                      <button className="icon-btn" onClick={() => setTaskModal({ open: true, mode: 'edit', task })}>
+                      <button
+                        className="icon-btn"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setTaskModal({ open: true, mode: 'edit', task });
+                        }}
+                      >
                         <PencilIcon />
                       </button>
-                      <button className="icon-btn danger" onClick={() => removeTask(task.id)}>
+                      <button
+                        className="icon-btn danger"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          removeTask(task.id);
+                        }}
+                      >
                         <TrashIcon />
                       </button>
                     </div>
@@ -578,15 +612,21 @@ function DashboardPage() {
                     <div className="task-card-actions">
                       <button
                         className="btn btn-ghost full"
-                        onClick={() => setTaskDetailsModal({ type: 'comments', taskId: task.id })}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setTagModal({ open: true, taskId: task.id });
+                        }}
                       >
-                        Leave comment
+                        Manage Tag
                       </button>
                       <button
-                        className="btn btn-soft full"
-                        onClick={() => setTaskDetailsModal({ type: 'tags', taskId: task.id })}
+                        className="btn btn-ghost full"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setCommentModal({ open: true, taskId: task.id });
+                        }}
                       >
-                        Manage tags
+                        Add Comment
                       </button>
                     </div>
                   </article>
@@ -652,24 +692,37 @@ function DashboardPage() {
         />
       )}
 
-      {taskDetailsModal.type === 'comments' && activeTask && (
-        <TaskCommentsModal
+      {taskDetailsModal.open && activeTask && (
+        <TaskDetailsModal
           task={activeTask}
-          comments={comments.filter((comment) => comment.taskId === activeTask.id)}
           users={users}
-          onClose={() => setTaskDetailsModal({ type: null, taskId: null })}
-          onAddComment={addComment}
+          tags={tags}
+          projectName={projectName(activeTask.projectId)}
+          comments={comments.filter((comment) => comment.taskId === activeTask.id)}
+          isCommentModalOpen={commentModal.open && commentModal.taskId === activeTask.id}
+          isTagModalOpen={tagModal.open && tagModal.taskId === activeTask.id}
+          showManageActions={taskDetailsModal.source !== 'preview'}
+          onOpenAddComment={(taskId) => setCommentModal({ open: true, taskId })}
+          onOpenTagManager={(taskId) => setTagModal({ open: true, taskId })}
+          onClose={closeTaskDetails}
         />
       )}
 
-      {taskDetailsModal.type === 'tags' && activeTask && (
+      {commentModal.open && (
+        <AddCommentModal
+          task={tasks.find((task) => task.id === commentModal.taskId) || null}
+          onClose={() => setCommentModal({ open: false, taskId: null })}
+          onSubmit={submitComment}
+        />
+      )}
+
+      {tagModal.open && (
         <TaskTagsModal
-          task={activeTask}
+          task={tasks.find((task) => task.id === tagModal.taskId) || null}
           tags={tags}
-          onClose={() => setTaskDetailsModal({ type: null, taskId: null })}
+          onClose={() => setTagModal({ open: false, taskId: null })}
           onCreateTag={createTag}
-          onAttachTags={appendTags}
-          onRemoveTag={removeTag}
+          onSubmit={submitTaskTags}
         />
       )}
 
@@ -821,104 +874,69 @@ function ProjectModal({ project, ownerId, onClose, onSubmit }) {
   );
 }
 
-function TaskTagsModal({
+function TaskDetailsModal({
   task,
   tags,
-  onClose,
-  onCreateTag,
-  onAttachTags,
-  onRemoveTag
-}) {
-  const [tagName, setTagName] = useState('');
-  const [selectedTagIds, setSelectedTagIds] = useState([]);
-
-  async function submitTag(event) {
-    event.preventDefault();
-
-    const idsToAttach = selectedTagIds.map((id) => Number(id)).filter((id) => !Number.isNaN(id));
-
-    if (tagName.trim()) {
-      const createdId = await onCreateTag(tagName.trim());
-      idsToAttach.push(createdId);
-      setTagName('');
-    }
-
-    if (idsToAttach.length) {
-      await onAttachTags(task.id, idsToAttach);
-      setSelectedTagIds([]);
-    }
-  }
-
-  return (
-    <div className="overlay" onClick={onClose}>
-      <aside className="modal card details-modal" onClick={(e) => e.stopPropagation()}>
-        <header>
-          <h3>Tags for: {task.title}</h3>
-          <button className="icon-btn" onClick={onClose}>x</button>
-        </header>
-
-        <section>
-          <h4>Attached tags</h4>
-          <div className="tags-picker">
-            {(task.tagIds || []).map((tagId) => (
-              <button className="chip active" key={tagId} onClick={() => onRemoveTag(task.id, tagId)}>
-                #{tags.find((tag) => tag.id === tagId)?.name || tagId} x
-              </button>
-            ))}
-            {(task.tagIds || []).length === 0 && <span className="muted">No tags yet.</span>}
-          </div>
-          <form className="inline-form" onSubmit={submitTag}>
-            <select
-              multiple
-              value={selectedTagIds}
-              onChange={(event) => {
-                const values = Array.from(event.target.selectedOptions).map((option) => option.value);
-                setSelectedTagIds(values);
-              }}
-            >
-              {tags.map((tag) => (
-                <option key={tag.id} value={tag.id}>{tag.name}</option>
-              ))}
-            </select>
-            <input placeholder="or create tag" value={tagName} onChange={(e) => setTagName(e.target.value)} />
-            <button className="btn btn-soft" type="submit">Add tag</button>
-          </form>
-        </section>
-      </aside>
-    </div>
-  );
-}
-
-function TaskCommentsModal({
-  task,
+  projectName,
   comments,
   users,
-  onClose,
-  onAddComment
+  isCommentModalOpen,
+  isTagModalOpen,
+  showManageActions,
+  onOpenAddComment,
+  onOpenTagManager,
+  onClose
 }) {
-  const [commentText, setCommentText] = useState('');
-
-  async function submitComment(event) {
-    event.preventDefault();
-    if (!commentText.trim()) {
-      return;
-    }
-
-    await onAddComment(task.id, commentText.trim());
-    setCommentText('');
-  }
+  const taskTagIds = task.tagIds || [];
 
   return (
     <div className="overlay" onClick={onClose}>
-      <aside className="modal card details-modal" onClick={(e) => e.stopPropagation()}>
-        <header>
-          <h3>Comments for: {task.title}</h3>
+      <aside className="modal card details-modal task-details-modal" onClick={(e) => e.stopPropagation()}>
+        <header className="task-details-head">
+          <div>
+            <p className="muted">Task details</p>
+            <h3>{task.title}</h3>
+          </div>
           <button className="icon-btn" onClick={onClose}>x</button>
         </header>
 
+        <section className="task-details-meta">
+          <span><b>Status:</b> {STATUS_LABEL[task.status]}</span>
+          <span><b>Due:</b> {task.dueDate || 'N/A'}</span>
+          <span><b>Project:</b> {projectName}</span>
+          <span><b>Assignee:</b> {users.find((u) => u.id === task.assigneeId)?.username || task.assigneeId}</span>
+        </section>
+
+        <section className="task-description-block">
+          <h4>Description</h4>
+          <p>{task.description || 'No description'}</p>
+        </section>
+
         <section>
-          <h4>Comments</h4>
-          <div className="comment-list">
+          <div className="section-head">
+            <h4>Tags</h4>
+            {showManageActions && (
+              <button className="btn btn-soft" type="button" onClick={() => onOpenTagManager(task.id)}>+ Add tag</button>
+            )}
+          </div>
+          <div className="tags-picker">
+            {taskTagIds.map((tagId) => (
+              <span className="chip active" key={tagId}>
+                #{tags.find((tag) => tag.id === tagId)?.name || tagId}
+              </span>
+            ))}
+          </div>
+          {!taskTagIds.length && !isTagModalOpen && <p className="muted">No tags yet.</p>}
+        </section>
+
+        <section>
+          <div className="section-head">
+            <h4>Comments</h4>
+            {showManageActions && (
+              <button className="btn btn-soft" type="button" onClick={() => onOpenAddComment(task.id)}>+ Add comment</button>
+            )}
+          </div>
+          <div className="comment-list scrollable-comments">
             {comments.map((comment) => (
               <article className="comment" key={comment.id}>
                 <header>
@@ -931,14 +949,160 @@ function TaskCommentsModal({
                 <p>{comment.text}</p>
               </article>
             ))}
-            {comments.length === 0 && <p className="muted">No comments yet.</p>}
           </div>
-          <form className="inline-form" onSubmit={submitComment}>
-            <textarea placeholder="Add comment" value={commentText} onChange={(e) => setCommentText(e.target.value)} />
-            <button className="btn btn-primary" type="submit">Post comment</button>
-          </form>
+          {!comments.length && !isCommentModalOpen && <p className="muted">No comments yet.</p>}
         </section>
       </aside>
+    </div>
+  );
+}
+
+function AddCommentModal({ task, onClose, onSubmit }) {
+  const [text, setText] = useState('');
+  const [submitError, setSubmitError] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  async function submit(event) {
+    event.preventDefault();
+    const normalizedText = text.trim();
+    if (!normalizedText) {
+      return;
+    }
+
+    setSubmitError('');
+    setBusy(true);
+    try {
+      await onSubmit(normalizedText);
+    } catch (err) {
+      setSubmitError(err.message || 'Failed to add comment');
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="overlay" onClick={onClose}>
+      <form className="modal card form-modal" onClick={(e) => e.stopPropagation()} onSubmit={submit}>
+        <h3>Add comment</h3>
+        {task && <p className="muted">Task: {task.title}</p>}
+        {submitError && <div className="error-box">{submitError}</div>}
+        <label className="field">
+          <span>Comment text</span>
+          <textarea
+            required
+            maxLength={2000}
+            autoFocus
+            value={text}
+            onChange={(event) => setText(event.target.value)}
+            placeholder="Write your comment..."
+          />
+        </label>
+        <div className="dialog-actions">
+          <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
+          <button type="submit" className="btn btn-primary" disabled={busy || !text.trim()}>
+            {busy ? 'Saving...' : 'Add comment'}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function TaskTagsModal({ task, tags, onClose, onCreateTag, onSubmit }) {
+  const [selectedTagIds, setSelectedTagIds] = useState(task?.tagIds || []);
+  const [newTagName, setNewTagName] = useState('');
+  const [submitError, setSubmitError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [creatingTag, setCreatingTag] = useState(false);
+
+  function toggleTag(tagId) {
+    setSelectedTagIds((prev) => (
+      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
+    ));
+  }
+
+  async function createNewTag(event) {
+    event.preventDefault();
+    const normalizedName = newTagName.trim();
+    if (!normalizedName) {
+      return;
+    }
+
+    setSubmitError('');
+    setCreatingTag(true);
+    try {
+      const createdTag = await onCreateTag(normalizedName);
+      setSelectedTagIds((prev) => (
+        prev.includes(createdTag.id) ? prev : [...prev, createdTag.id]
+      ));
+      setNewTagName('');
+    } catch (err) {
+      setSubmitError(err.message || 'Failed to create tag');
+    } finally {
+      setCreatingTag(false);
+    }
+  }
+
+  async function submit(event) {
+    event.preventDefault();
+    if (!task) {
+      return;
+    }
+
+    setSubmitError('');
+    setBusy(true);
+    try {
+      await onSubmit(selectedTagIds);
+    } catch (err) {
+      setSubmitError(err.message || 'Failed to update task tags');
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="overlay" onClick={onClose}>
+      <form className="modal card form-modal" onClick={(e) => e.stopPropagation()} onSubmit={submit}>
+        <h3>Manage tags</h3>
+        {task && <p className="muted">Task: {task.title}</p>}
+        {submitError && <div className="error-box">{submitError}</div>}
+        <div className="field">
+          <span>Create a new tag</span>
+          <div className="tag-create-row">
+            <input
+              maxLength={80}
+              placeholder="For example: design"
+              value={newTagName}
+              onChange={(event) => setNewTagName(event.target.value)}
+            />
+            <button
+              className="btn btn-soft tag-create-btn"
+              type="button"
+              onClick={createNewTag}
+              disabled={creatingTag || !newTagName.trim()}
+            >
+              {creatingTag ? 'Creating...' : 'Create tag'}
+            </button>
+          </div>
+        </div>
+        <div className="tags-picker">
+          {tags.map((tag) => (
+            <button
+              key={tag.id}
+              type="button"
+              className={selectedTagIds.includes(tag.id) ? 'chip active' : 'chip'}
+              onClick={() => toggleTag(tag.id)}
+            >
+              #{tag.name}
+            </button>
+          ))}
+        </div>
+        {!tags.length && <p className="muted">No tags available.</p>}
+        <div className="dialog-actions">
+          <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
+          <button type="submit" className="btn btn-primary" disabled={busy}>
+            {busy ? 'Saving...' : 'Save tags'}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

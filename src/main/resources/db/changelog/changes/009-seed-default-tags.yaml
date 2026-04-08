@@ -1,0 +1,46 @@
+databaseChangeLog:
+  - changeSet:
+      id: 009-seed-default-tags
+      author: bursh
+      preConditions:
+        - onFail: MARK_RAN
+        - sqlCheck:
+            expectedResult: "0"
+            sql: SELECT COUNT(*) FROM tags
+      changes:
+        - insert:
+            tableName: tags
+            columns:
+              - column:
+                  name: name
+                  value: urgent
+        - insert:
+            tableName: tags
+            columns:
+              - column:
+                  name: name
+                  value: bug
+        - insert:
+            tableName: tags
+            columns:
+              - column:
+                  name: name
+                  value: frontend
+        - insert:
+            tableName: tags
+            columns:
+              - column:
+                  name: name
+                  value: backend
+        - insert:
+            tableName: tags
+            columns:
+              - column:
+                  name: name
+                  value: research
+        - insert:
+            tableName: tags
+            columns:
+              - column:
+                  name: name
+                  value: docs
