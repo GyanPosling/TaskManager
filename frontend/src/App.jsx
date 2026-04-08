@@ -442,6 +442,21 @@ function DashboardPage() {
     setTagModal({ open: false, taskId: null });
   }
 
+  async function updateTaskStatus(task, status) {
+    if (task.status === status) {
+      return;
+    }
+
+    const updatedTask = await apiFetch(`/api/tasks/${task.id}`, {
+      method: 'PUT',
+      body: JSON.stringify(taskToRequest(task, { status }))
+    });
+
+    setTasks((prev) => prev.map((candidate) => (
+      candidate.id === updatedTask.id ? updatedTask : candidate
+    )));
+  }
+
   function openTaskDetails(taskId, source = 'board') {
     setTaskDetailsModal({ open: true, taskId, source });
   }
@@ -583,7 +598,7 @@ function DashboardPage() {
                 <div className="card-list">
                   {tasksByStatus[status].map((task) => (
                     <article
-                      className="task-card clickable"
+                      className={`task-card clickable task-card-${statusToClass(task.status)}`}
                       key={task.id}
                       onClick={() => openTaskDetails(task.id)}
                     >
@@ -620,25 +635,61 @@ function DashboardPage() {
                           <span className="chip" key={tagId}>#{tags.find((tag) => tag.id === tagId)?.name || tagId}</span>
                         ))}
                       </div>
-                      <div className="task-card-actions">
-                        <button
-                          className="btn btn-ghost full"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setTagModal({ open: true, taskId: task.id });
-                          }}
-                        >
-                          Manage Tag
-                        </button>
-                        <button
-                          className="btn btn-ghost full"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setCommentModal({ open: true, taskId: task.id });
-                          }}
-                        >
-                          Add Comment
-                        </button>
+                      <div className={
+                        task.status === 'DONE'
+                          ? 'task-card-footer'
+                          : task.status === 'IN_PROGRESS' || task.status === 'TODO'
+                            ? 'task-card-footer task-card-footer-in-progress'
+                            : 'task-card-footer task-card-footer-split'
+                      }>
+                        <div className={
+                          task.status === 'DONE' || task.status === 'IN_PROGRESS' || task.status === 'TODO'
+                            ? 'task-card-actions task-card-actions-horizontal'
+                            : 'task-card-actions'
+                        }>
+                          <button
+                            className="btn btn-ghost"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setTagModal({ open: true, taskId: task.id });
+                            }}
+                          >
+                            Manage Tag
+                          </button>
+                          <button
+                            className="btn btn-ghost"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setCommentModal({ open: true, taskId: task.id });
+                            }}
+                          >
+                            Add Comment
+                          </button>
+                        </div>
+                        {task.status !== 'DONE' && (
+                          <div className="task-progress-actions">
+                            {task.status === 'TODO' && (
+                              <button
+                                className="btn btn-mark-progress"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  updateTaskStatus(task, 'IN_PROGRESS');
+                                }}
+                              >
+                                Move to in progress
+                              </button>
+                            )}
+                            <button
+                              className="btn btn-mark-done"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                updateTaskStatus(task, 'DONE');
+                              }}
+                            >
+                              Mark as done
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </article>
                   ))}
@@ -904,7 +955,10 @@ function TaskDetailsModal({
 
   return (
     <div className="overlay" onClick={onClose}>
-      <aside className="modal card details-modal task-details-modal" onClick={(e) => e.stopPropagation()}>
+      <aside
+        className={`modal card details-modal task-details-modal task-details-${statusToClass(task.status)}`}
+        onClick={(e) => e.stopPropagation()}
+      >
         <header className="task-details-head">
           <div>
             <p className="muted">Task details</p>

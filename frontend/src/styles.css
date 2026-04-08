@@ -587,6 +587,8 @@ textarea {
 
 .card-list {
   display: grid;
+  align-content: start;
+  grid-auto-rows: max-content;
   gap: 10px;
   padding: 0 12px;
   min-height: 0;
@@ -600,9 +602,16 @@ textarea {
   border-radius: 10px;
   padding: 12px;
   display: grid;
+  align-content: start;
   gap: 8px;
   background: var(--panel);
   position: relative;
+}
+
+.task-card-in-progress,
+.task-card-done {
+  height: auto;
+  min-height: 0;
 }
 
 .task-card.clickable {
@@ -902,10 +911,24 @@ textarea {
 }
 
 .task-details-modal {
+  border: 3px solid transparent;
   background:
     radial-gradient(circle at 100% 0, rgba(41, 104, 226, 0.08), transparent 30%),
     radial-gradient(circle at 0 100%, rgba(17, 136, 168, 0.1), transparent 34%),
     #fff;
+}
+
+.task-details-modal.task-details-to-do,
+.task-details-modal.task-details-todo {
+  border-color: #8e2535;
+}
+
+.task-details-modal.task-details-in-progress {
+  border-color: #c5911f;
+}
+
+.task-details-modal.task-details-done {
+  border-color: #2f8b59;
 }
 
 .details-modal > header {
@@ -1050,8 +1073,102 @@ textarea {
 
 .task-card-actions {
   display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+
+.task-card-actions-horizontal {
   grid-template-columns: 1fr 1fr;
   gap: 8px;
+}
+
+.task-card-footer {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  max-width: 100%;
+  justify-self: stretch;
+}
+
+.task-card-footer-split {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  align-items: stretch;
+}
+
+.task-card-footer-in-progress {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  align-items: stretch;
+}
+
+.task-card-actions .btn {
+  width: 100%;
+  min-height: 34px;
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+.btn-mark-done {
+  width: 100%;
+  min-height: 38px;
+  padding: 7px 10px;
+  font-size: 13px;
+  color: #fff;
+  border: 1px solid #2f8b59;
+  background: linear-gradient(145deg, #37a167, #2f8b59);
+}
+
+.task-progress-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+
+.task-card-footer-in-progress .task-card-actions {
+  grid-column: 1 / -1;
+  grid-template-columns: 1fr 1fr;
+}
+
+.task-card-footer-in-progress .task-progress-actions {
+  grid-column: 1 / -1;
+}
+
+.btn-mark-progress {
+  width: 100%;
+  min-height: 38px;
+  padding: 7px 10px;
+  font-size: 13px;
+  color: #38290a;
+  border: 1px solid #c5911f;
+  background: linear-gradient(145deg, #dfb545, #c5911f);
+}
+
+.btn-mark-progress:hover {
+  background: linear-gradient(145deg, #cda032, #b88315);
+}
+
+.btn-mark-done:hover {
+  background: linear-gradient(145deg, #2f8b59, #2a7a4f);
+}
+
+.btn-mark-done:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.task-card-footer-split .task-card-actions .btn,
+.task-card-footer-split .task-progress-actions .btn {
+  min-height: 40px;
+  line-height: 1.15;
+}
+
+.task-card-footer-in-progress .task-card-actions .btn,
+.task-card-footer-in-progress .task-progress-actions .btn {
+  min-height: 40px;
+  line-height: 1.15;
 }
 
 .dialog-actions {
@@ -1207,6 +1324,31 @@ textarea {
   }
 
   .task-card-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .task-card-footer {
+    display: grid;
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    max-width: 100%;
+    justify-self: stretch;
+  }
+
+  .task-card-to-do,
+  .task-card-in-progress,
+  .task-card-done {
+    height: auto;
+    min-height: 0;
+  }
+
+  .task-card-actions .btn,
+  .btn-mark-progress,
+  .btn-mark-done {
+    width: 100%;
+  }
+
+  .task-card-actions-horizontal {
     grid-template-columns: 1fr;
   }
 
