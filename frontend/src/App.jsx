@@ -10,7 +10,6 @@ import {
   saveSession
 } from './api';
 import introGuide from './assets/intro-guide.jpg';
-import defaultAvatar from './assets/default-avatar.jpg';
 import githubIcon from './assets/github.jpg';
 import instagramIcon from './assets/instagram.jpg';
 import googleTasksLogo from './assets/google-tasks.jpg';
@@ -201,8 +200,9 @@ function DashboardPage() {
 
   const [taskModal, setTaskModal] = useState({ open: false, mode: 'create', task: null });
   const [projectModal, setProjectModal] = useState({ open: false, project: null });
-  const [detailsTask, setDetailsTask] = useState(null);
+  const [taskDetailsModal, setTaskDetailsModal] = useState({ type: null, taskId: null });
   const [selectedUser, setSelectedUser] = useState(null);
+  const [expandedProjectId, setExpandedProjectId] = useState(null);
 
   useEffect(() => {
     if (!user) {
@@ -272,6 +272,23 @@ function DashboardPage() {
     [myTasks]
   );
 
+  const myTasksByProjectAndStatus = useMemo(
+    () => myProjects.reduce((acc, project) => {
+      const projectTasks = myTasks.filter((task) => task.projectId === project.id);
+      acc[project.id] = STATUSES.reduce((statusAcc, status) => {
+        statusAcc[status] = projectTasks.filter((task) => task.status === status);
+        return statusAcc;
+      }, {});
+      return acc;
+    }, {}),
+    [myProjects, myTasks]
+  );
+
+  const activeTask = useMemo(
+    () => tasks.find((task) => task.id === taskDetailsModal.taskId) || null,
+    [tasks, taskDetailsModal.taskId]
+  );
+
   const searchedUsers = useMemo(() => {
     const q = userSearch.trim().toLowerCase();
     if (!q) {
@@ -297,20 +314,24 @@ function DashboardPage() {
   }
 
   async function submitProject(payload) {
+    let savedProject;
     if (projectModal.project) {
-      await apiFetch(`/api/projects/${projectModal.project.id}`, {
+      savedProject = await apiFetch(`/api/projects/${projectModal.project.id}`, {
         method: 'PUT',
         body: JSON.stringify(payload)
       });
+      setProjects((prev) => prev.map((project) => (
+        project.id === savedProject.id ? savedProject : project
+      )));
     } else {
-      await apiFetch('/api/projects', {
+      savedProject = await apiFetch('/api/projects', {
         method: 'POST',
         body: JSON.stringify(payload)
       });
+      setProjects((prev) => [...prev, savedProject]);
     }
 
     setProjectModal({ open: false, project: null });
-    await loadData();
   }
 
   async function removeProject(projectId) {
@@ -324,7 +345,11 @@ function DashboardPage() {
     if (String(projectId) === projectFilter) {
       setProjectFilter('all');
     }
-    await loadData();
+    setProjects((prev) => prev.filter((project) => project.id !== projectId));
+    setTasks((prev) => prev.filter((task) => task.projectId !== projectId));
+    if (expandedProjectId === projectId) {
+      setExpandedProjectId(null);
+    }
   }
 
   async function submitTask(payload) {
@@ -333,37 +358,40 @@ function DashboardPage() {
       assigneeId: user.id
     };
 
+    let savedTask;
     if (taskModal.mode === 'edit' && taskModal.task) {
-      await apiFetch(`/api/tasks/${taskModal.task.id}`, {
+      savedTask = await apiFetch(`/api/tasks/${taskModal.task.id}`, {
         method: 'PUT',
         body: JSON.stringify(requestPayload)
       });
+      setTasks((prev) => prev.map((task) => (task.id === savedTask.id ? savedTask : task)));
     } else {
-      await apiFetch('/api/tasks', {
+      savedTask = await apiFetch('/api/tasks', {
         method: 'POST',
         body: JSON.stringify(requestPayload)
       });
+      setTasks((prev) => [...prev, savedTask]);
     }
 
     setTaskModal({ open: false, mode: 'create', task: null });
-    await loadData();
   }
 
   async function removeTask(taskId) {
     await apiFetch(`/api/tasks/${taskId}`, { method: 'DELETE' });
-    if (detailsTask?.id === taskId) {
-      setDetailsTask(null);
+    if (taskDetailsModal.taskId === taskId) {
+      setTaskDetailsModal({ type: null, taskId: null });
     }
-    await loadData();
+    setTasks((prev) => prev.filter((task) => task.id !== taskId));
+    setComments((prev) => prev.filter((comment) => comment.taskId !== taskId));
   }
 
   async function addComment(taskId, text) {
-    await apiFetch('/api/comments', {
+    const created = await apiFetch('/api/comments', {
       method: 'POST',
       body: JSON.stringify({ text, taskId, authorId: user.id })
     });
 
-    await loadData();
+    setComments((prev) => [...prev, created]);
   }
 
   async function createTag(name) {
@@ -372,28 +400,40 @@ function DashboardPage() {
       body: JSON.stringify({ name })
     });
 
-    setTags((prev) => [...prev, created]);
+    setTags((prev) => (prev.some((tag) => tag.id === created.id) ? prev : [...prev, created]));
     return created.id;
   }
 
-  async function appendTag(task, tagId) {
-    const nextTagIds = Array.from(new Set([...(task.tagIds || []), tagId]));
-    await apiFetch(`/api/tasks/${task.id}`, {
-      method: 'PUT',
-      body: JSON.stringify(taskToRequest(task, { tagIds: nextTagIds, assigneeId: user.id }))
-    });
+  async function appendTags(taskId, tagIds) {
+    const currentTask = tasks.find((task) => task.id === taskId);
+    if (!currentTask) {
+      return;
+    }
 
-    await loadData();
+    const nextTagIds = Array.from(new Set([...(currentTask.tagIds || []), ...tagIds]));
+    if (!nextTagIds.length) {
+      return;
+    }
+
+    const updatedTask = await apiFetch(`/api/tasks/${taskId}`, {
+      method: 'PUT',
+      body: JSON.stringify(taskToRequest(currentTask, { tagIds: nextTagIds, assigneeId: user.id }))
+    });
+    setTasks((prev) => prev.map((task) => (task.id === taskId ? updatedTask : task)));
   }
 
-  async function removeTag(task, tagId) {
-    const nextTagIds = (task.tagIds || []).filter((id) => id !== tagId);
-    await apiFetch(`/api/tasks/${task.id}`, {
-      method: 'PUT',
-      body: JSON.stringify(taskToRequest(task, { tagIds: nextTagIds, assigneeId: user.id }))
-    });
+  async function removeTag(taskId, tagId) {
+    const currentTask = tasks.find((task) => task.id === taskId);
+    if (!currentTask) {
+      return;
+    }
 
-    await loadData();
+    const nextTagIds = (currentTask.tagIds || []).filter((id) => id !== tagId);
+    const updatedTask = await apiFetch(`/api/tasks/${taskId}`, {
+      method: 'PUT',
+      body: JSON.stringify(taskToRequest(currentTask, { tagIds: nextTagIds, assigneeId: user.id }))
+    });
+    setTasks((prev) => prev.map((task) => (task.id === taskId ? updatedTask : task)));
   }
 
   if (loading) {
@@ -427,20 +467,53 @@ function DashboardPage() {
             All my tasks
           </button>
           {myProjects.map((project) => (
-            <div className="project-row" key={project.id}>
-              <button
-                className={String(project.id) === projectFilter ? 'pill active' : 'pill'}
-                onClick={() => setProjectFilter(String(project.id))}
-              >
-                {project.name}
-              </button>
-              <div className="row-actions">
-                <button className="icon-btn" onClick={() => setProjectModal({ open: true, project })}>
-                  <PencilIcon />
+            <div className={expandedProjectId === project.id ? 'project-row expanded' : 'project-row'} key={project.id}>
+              <div className="project-main-row">
+                <button
+                  className={String(project.id) === projectFilter ? 'pill active' : 'pill'}
+                  onClick={() => setProjectFilter(String(project.id))}
+                >
+                  <span>{project.name}</span>
                 </button>
-                <button className="icon-btn danger" onClick={() => removeProject(project.id)}>
-                  <TrashIcon />
-                </button>
+                <div className="row-actions">
+                  <button
+                    className="icon-btn"
+                    onClick={() => setExpandedProjectId((prev) => (prev === project.id ? null : project.id))}
+                    aria-label="Toggle project tasks"
+                  >
+                    {expandedProjectId === project.id ? '−' : '+'}
+                  </button>
+                  <button className="icon-btn" onClick={() => setProjectModal({ open: true, project })}>
+                    <PencilIcon />
+                  </button>
+                  <button className="icon-btn danger" onClick={() => removeProject(project.id)}>
+                    <TrashIcon />
+                  </button>
+                </div>
+              </div>
+              <div className="project-tasks-preview">
+                {STATUSES.map((status) => (
+                  <div className="project-status-block" key={`${project.id}-${status}`}>
+                    <div className="project-status-head">
+                      <span>{STATUS_LABEL[status]}</span>
+                      <b>{myTasksByProjectAndStatus[project.id]?.[status]?.length || 0}</b>
+                    </div>
+                    <div className="project-status-list">
+                      {(myTasksByProjectAndStatus[project.id]?.[status] || []).slice(0, 3).map((task) => (
+                        <button
+                          key={task.id}
+                          className="project-task-link"
+                          onClick={() => setTaskDetailsModal({ type: 'comments', taskId: task.id })}
+                        >
+                          {task.title}
+                        </button>
+                      ))}
+                      {(myTasksByProjectAndStatus[project.id]?.[status] || []).length === 0 && (
+                        <span className="muted">No tasks</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           ))}
@@ -498,13 +571,24 @@ function DashboardPage() {
                       <span><b>Project:</b> {projectName(task.projectId)}</span>
                     </div>
                     <div className="tag-row">
-                      {(task.tagIds || []).slice(0, 4).map((tagId) => (
+                      {(task.tagIds || []).map((tagId) => (
                         <span className="chip" key={tagId}>#{tags.find((tag) => tag.id === tagId)?.name || tagId}</span>
                       ))}
                     </div>
-                    <button className="btn btn-ghost full" onClick={() => setDetailsTask(task)}>
-                      Comments & tags
-                    </button>
+                    <div className="task-card-actions">
+                      <button
+                        className="btn btn-ghost full"
+                        onClick={() => setTaskDetailsModal({ type: 'comments', taskId: task.id })}
+                      >
+                        Leave comment
+                      </button>
+                      <button
+                        className="btn btn-soft full"
+                        onClick={() => setTaskDetailsModal({ type: 'tags', taskId: task.id })}
+                      >
+                        Manage tags
+                      </button>
+                    </div>
                   </article>
                 ))}
               </div>
@@ -529,7 +613,7 @@ function DashboardPage() {
               <article className="user-card clickable" key={candidate.id} onClick={() => setSelectedUser(candidate)}>
                 <header>
                   <div className="user-head">
-                    <img src={defaultAvatar} alt="User avatar" />
+                    <AvatarBadge name={candidate.username} />
                     <strong>{candidate.username}</strong>
                   </div>
                   <span>{candidateTaskList.length} tasks</span>
@@ -568,16 +652,23 @@ function DashboardPage() {
         />
       )}
 
-      {detailsTask && (
-        <TaskDetailsDrawer
-          task={detailsTask}
-          tags={tags}
-          comments={comments.filter((comment) => comment.taskId === detailsTask.id)}
+      {taskDetailsModal.type === 'comments' && activeTask && (
+        <TaskCommentsModal
+          task={activeTask}
+          comments={comments.filter((comment) => comment.taskId === activeTask.id)}
           users={users}
-          onClose={() => setDetailsTask(null)}
+          onClose={() => setTaskDetailsModal({ type: null, taskId: null })}
           onAddComment={addComment}
+        />
+      )}
+
+      {taskDetailsModal.type === 'tags' && activeTask && (
+        <TaskTagsModal
+          task={activeTask}
+          tags={tags}
+          onClose={() => setTaskDetailsModal({ type: null, taskId: null })}
           onCreateTag={createTag}
-          onAttachTag={appendTag}
+          onAttachTags={appendTags}
           onRemoveTag={removeTag}
         />
       )}
@@ -730,20 +821,82 @@ function ProjectModal({ project, ownerId, onClose, onSubmit }) {
   );
 }
 
-function TaskDetailsDrawer({
+function TaskTagsModal({
   task,
   tags,
+  onClose,
+  onCreateTag,
+  onAttachTags,
+  onRemoveTag
+}) {
+  const [tagName, setTagName] = useState('');
+  const [selectedTagIds, setSelectedTagIds] = useState([]);
+
+  async function submitTag(event) {
+    event.preventDefault();
+
+    const idsToAttach = selectedTagIds.map((id) => Number(id)).filter((id) => !Number.isNaN(id));
+
+    if (tagName.trim()) {
+      const createdId = await onCreateTag(tagName.trim());
+      idsToAttach.push(createdId);
+      setTagName('');
+    }
+
+    if (idsToAttach.length) {
+      await onAttachTags(task.id, idsToAttach);
+      setSelectedTagIds([]);
+    }
+  }
+
+  return (
+    <div className="overlay" onClick={onClose}>
+      <aside className="modal card details-modal" onClick={(e) => e.stopPropagation()}>
+        <header>
+          <h3>Tags for: {task.title}</h3>
+          <button className="icon-btn" onClick={onClose}>x</button>
+        </header>
+
+        <section>
+          <h4>Attached tags</h4>
+          <div className="tags-picker">
+            {(task.tagIds || []).map((tagId) => (
+              <button className="chip active" key={tagId} onClick={() => onRemoveTag(task.id, tagId)}>
+                #{tags.find((tag) => tag.id === tagId)?.name || tagId} x
+              </button>
+            ))}
+            {(task.tagIds || []).length === 0 && <span className="muted">No tags yet.</span>}
+          </div>
+          <form className="inline-form" onSubmit={submitTag}>
+            <select
+              multiple
+              value={selectedTagIds}
+              onChange={(event) => {
+                const values = Array.from(event.target.selectedOptions).map((option) => option.value);
+                setSelectedTagIds(values);
+              }}
+            >
+              {tags.map((tag) => (
+                <option key={tag.id} value={tag.id}>{tag.name}</option>
+              ))}
+            </select>
+            <input placeholder="or create tag" value={tagName} onChange={(e) => setTagName(e.target.value)} />
+            <button className="btn btn-soft" type="submit">Add tag</button>
+          </form>
+        </section>
+      </aside>
+    </div>
+  );
+}
+
+function TaskCommentsModal({
+  task,
   comments,
   users,
   onClose,
-  onAddComment,
-  onCreateTag,
-  onAttachTag,
-  onRemoveTag
+  onAddComment
 }) {
   const [commentText, setCommentText] = useState('');
-  const [tagName, setTagName] = useState('');
-  const [selectedTagId, setSelectedTagId] = useState('');
 
   async function submitComment(event) {
     event.preventDefault();
@@ -755,50 +908,13 @@ function TaskDetailsDrawer({
     setCommentText('');
   }
 
-  async function submitTag(event) {
-    event.preventDefault();
-
-    if (tagName.trim()) {
-      const createdId = await onCreateTag(tagName.trim());
-      await onAttachTag(task, createdId);
-      setTagName('');
-      return;
-    }
-
-    if (selectedTagId) {
-      await onAttachTag(task, Number(selectedTagId));
-      setSelectedTagId('');
-    }
-  }
-
   return (
-    <div className="drawer-overlay" onClick={onClose}>
-      <aside className="drawer card" onClick={(e) => e.stopPropagation()}>
+    <div className="overlay" onClick={onClose}>
+      <aside className="modal card details-modal" onClick={(e) => e.stopPropagation()}>
         <header>
-          <h3>{task.title}</h3>
+          <h3>Comments for: {task.title}</h3>
           <button className="icon-btn" onClick={onClose}>x</button>
         </header>
-
-        <section>
-          <h4>Tags</h4>
-          <div className="tags-picker">
-            {(task.tagIds || []).map((tagId) => (
-              <button className="chip active" key={tagId} onClick={() => onRemoveTag(task, tagId)}>
-                #{tags.find((tag) => tag.id === tagId)?.name || tagId} x
-              </button>
-            ))}
-          </div>
-          <form className="inline-form" onSubmit={submitTag}>
-            <select value={selectedTagId} onChange={(e) => setSelectedTagId(e.target.value)}>
-              <option value="">Attach existing tag</option>
-              {tags.map((tag) => (
-                <option key={tag.id} value={tag.id}>{tag.name}</option>
-              ))}
-            </select>
-            <input placeholder="or create tag" value={tagName} onChange={(e) => setTagName(e.target.value)} />
-            <button className="btn btn-soft" type="submit">Add tag</button>
-          </form>
-        </section>
 
         <section>
           <h4>Comments</h4>
@@ -807,7 +923,7 @@ function TaskDetailsDrawer({
               <article className="comment" key={comment.id}>
                 <header>
                   <div className="user-head">
-                    <img src={defaultAvatar} alt="User avatar" />
+                    <AvatarBadge name={users.find((u) => u.id === comment.authorId)?.username || String(comment.authorId)} />
                     <strong>{users.find((u) => u.id === comment.authorId)?.username || comment.authorId}</strong>
                   </div>
                   <span>{new Date(comment.createdAt).toLocaleString()}</span>
@@ -845,7 +961,7 @@ function UserDetailsModal({ user, tasks, onClose }) {
       <article className="modal card user-modal" onClick={(e) => e.stopPropagation()}>
         <header className="user-modal-head">
           <div className="user-head big">
-            <img src={defaultAvatar} alt="User avatar" />
+            <AvatarBadge name={user.username} large />
             <div>
               <h3>{user.username}</h3>
               <p className="muted">{user.email}</p>
@@ -889,6 +1005,11 @@ function taskToRequest(task, overrides = {}) {
     tagIds: task?.tagIds || [],
     ...overrides
   };
+}
+
+function AvatarBadge({ name, large = false }) {
+  const initial = (name || '?').trim().charAt(0).toUpperCase() || '?';
+  return <div className={large ? 'avatar-badge large' : 'avatar-badge'}>{initial}</div>;
 }
 
 function PencilIcon() {

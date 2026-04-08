@@ -263,13 +263,13 @@ textarea {
 
 .auth-box h2 {
   text-align: center;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .field {
   display: grid;
   gap: 8px;
-  margin-top: 12px;
+  margin-top: 14px;
 }
 
 input,
@@ -314,12 +314,17 @@ textarea {
   background: #f8faff;
 }
 
+.auth-box .btn.full {
+  margin-top: 16px;
+}
+
 .board-shell {
   min-height: 100vh;
   display: grid;
   gap: 14px;
   grid-template-columns: 280px 1fr 320px;
   padding: 14px;
+  overflow-x: hidden;
 }
 
 .left-panel,
@@ -462,10 +467,20 @@ textarea {
 .pill {
   border: 1px solid var(--line);
   border-radius: 11px;
-  padding: 9px;
+  padding: 9px 12px;
   text-align: left;
   background: #fff;
   flex: 1;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.pill span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .pill.active {
@@ -478,7 +493,64 @@ textarea {
   gap: 7px;
 }
 
+.project-tasks-preview {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: max-height 0.25s ease, opacity 0.25s ease, transform 0.25s ease;
+  display: grid;
+  gap: 8px;
+}
+
+.project-row.expanded .project-tasks-preview {
+  max-height: 520px;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.project-status-block {
+  border: 1px solid #d6def0;
+  border-radius: 10px;
+  padding: 8px;
+  background: #f8fbff;
+  display: grid;
+  gap: 6px;
+}
+
+.project-status-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #335083;
+}
+
+.project-status-list {
+  display: grid;
+  gap: 5px;
+}
+
+.project-task-link {
+  border: 1px solid #d4dcef;
+  border-radius: 8px;
+  background: #fff;
+  padding: 6px 8px;
+  text-align: left;
+  color: var(--text);
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.project-task-link:hover {
+  border-color: #9eb8ea;
+}
+
 .project-row {
+  display: grid;
+  gap: 8px;
+}
+
+.project-main-row {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 6px;
@@ -490,14 +562,15 @@ textarea {
 }
 
 .icon-btn {
-  width: 30px;
-  height: 30px;
+  width: 48px;
+  min-height: 48px;
   border: 1px solid var(--line);
   border-radius: 10px;
   display: grid;
   place-items: center;
   cursor: pointer;
   background: #fff;
+  font-weight: 700;
 }
 
 .icon-btn svg {
@@ -515,6 +588,7 @@ textarea {
   overflow-y: auto;
   display: grid;
   gap: 10px;
+  overflow-x: hidden;
 }
 
 .user-card {
@@ -524,6 +598,8 @@ textarea {
   padding: 10px;
   display: grid;
   gap: 8px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .user-card header {
@@ -536,6 +612,7 @@ textarea {
 .user-card p {
   color: var(--muted);
   font-size: 13px;
+  overflow-wrap: anywhere;
 }
 
 .clickable {
@@ -548,28 +625,19 @@ textarea {
   gap: 8px;
 }
 
-.user-head img {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 1px solid #cad5eb;
-}
-
-.user-head.big img {
-  width: 58px;
-  height: 58px;
-}
-
 .tiny-list {
   display: grid;
   gap: 3px;
   font-size: 12px;
   color: #325084;
+  min-width: 0;
 }
 
-.overlay,
-.drawer-overlay {
+.tiny-list span {
+  overflow-wrap: anywhere;
+}
+
+.overlay {
   position: fixed;
   inset: 0;
   background: rgba(8, 15, 30, 0.48);
@@ -582,6 +650,20 @@ textarea {
 .modal {
   width: min(680px, 100%);
   padding: 16px;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+}
+
+.details-modal {
+  width: min(760px, 100%);
+  display: grid;
+  gap: 14px;
+}
+
+.details-modal > header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .user-modal {
@@ -642,10 +724,36 @@ textarea {
   font-size: 13px;
 }
 
+.avatar-badge {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid #b6c9f3;
+  background: linear-gradient(135deg, #1b86b6, #2e6be3);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.avatar-badge.large {
+  width: 58px;
+  height: 58px;
+  font-size: 22px;
+}
+
 .grid-two {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
+}
+
+.task-card-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
 }
 
 .dialog-actions {
@@ -655,29 +763,13 @@ textarea {
   gap: 10px;
 }
 
-.drawer-overlay {
-  place-items: stretch end;
-}
-
-.drawer {
-  width: min(560px, 100%);
-  height: 100%;
-  border-radius: 0;
-  padding: 16px;
-  overflow-y: auto;
-  display: grid;
-  gap: 16px;
-}
-
-.drawer > header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
 .inline-form {
   display: grid;
   gap: 8px;
+}
+
+.inline-form select[multiple] {
+  min-height: 140px;
 }
 
 .comment-list {
@@ -760,5 +852,14 @@ textarea {
 
   .status-column {
     min-height: auto;
+  }
+
+  .task-card-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .icon-btn {
+    width: 42px;
+    min-height: 42px;
   }
 }
