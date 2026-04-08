@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -20,6 +21,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
+    private static final String AUTH_PATH_PREFIX = "/api/auth/";
 
     private final JwtService jwtService;
     private final CustomUserDetailsService userDetailsService;
@@ -35,13 +37,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             try {
                 jwtService.validateToken(jwtToken);
                 setAuthentication(jwtToken);
-            } catch (JwtException | IllegalArgumentException ex) {
+            } catch (JwtException | IllegalArgumentException | UsernameNotFoundException ex) {
                 SecurityContextHolder.clearContext();
                 log.debug("Invalid JWT token", ex);
             }
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        return request.getServletPath().startsWith(AUTH_PATH_PREFIX);
     }
 
     private String getTokenFromRequest(HttpServletRequest request) {
@@ -57,6 +64,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
         String username = jwtService.extractUsername(jwtToken);
+        if (username == null || username.isBlank()) {
+            return;
+        }
         UserDetails userDetails = userDetailsService.loadUserByUsername(username);
         UsernamePasswordAuthenticationToken authentication =
                 new UsernamePasswordAuthenticationToken(

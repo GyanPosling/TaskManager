@@ -464,212 +464,224 @@ function DashboardPage() {
   }
 
   return (
-    <div className="board-shell">
-      <aside className="left-panel card">
-        <div>
-          <h3>Projects</h3>
-          <button className="btn btn-soft full" onClick={() => setProjectModal({ open: true, project: null })}>
-            + New project
-          </button>
+    <div className="dashboard-layout">
+      <header className="app-topbar">
+        <div className="app-topbar-brand">
+          <img src={googleTasksLogo} alt="Task Manager logo" />
+          <div>
+            <strong>Task Manager</strong>
+            <small>Personal workspace</small>
+          </div>
         </div>
-
-        <div className="project-filter">
-          <button
-            className={projectFilter === 'all' ? 'pill active' : 'pill'}
-            onClick={() => setProjectFilter('all')}
-          >
-            All my tasks
+        <div className="app-topbar-actions">
+          <button className="topbar-profile-btn" type="button" onClick={() => setSelectedUser(user)}>
+            <AvatarBadge name={user.username} />
+            <span>{user.username}</span>
           </button>
-          {myProjects.map((project) => (
-            <div className="project-row" key={project.id}>
-              <div className="project-main-row">
-                <button
-                  className={String(project.id) === projectFilter ? 'pill active' : 'pill'}
-                  onClick={() => setProjectFilter(String(project.id))}
-                >
-                  <span>{project.name}</span>
-                </button>
-                <div className="row-actions">
-                  <button className="icon-btn" onClick={() => setProjectModal({ open: true, project })}>
-                    <PencilIcon />
+          <button className="btn btn-topbar-ghost" onClick={logout}>Logout</button>
+        </div>
+      </header>
+
+      <div className="board-shell">
+        <aside className="left-panel card">
+          <div>
+            <h3>Projects</h3>
+            <button className="btn btn-soft full" onClick={() => setProjectModal({ open: true, project: null })}>
+              + New project
+            </button>
+          </div>
+
+          <div className="project-filter">
+            <button
+              className={projectFilter === 'all' ? 'pill active' : 'pill'}
+              onClick={() => setProjectFilter('all')}
+            >
+              All my tasks
+            </button>
+            {myProjects.map((project) => (
+              <div className="project-row" key={project.id}>
+                <div className="project-main-row">
+                  <button
+                    className={String(project.id) === projectFilter ? 'pill active' : 'pill'}
+                    onClick={() => setProjectFilter(String(project.id))}
+                  >
+                    <span>{project.name}</span>
                   </button>
-                  <button className="icon-btn danger" onClick={() => removeProject(project.id)}>
-                    <TrashIcon />
-                  </button>
+                  <div className="row-actions">
+                    <button className="icon-btn" onClick={() => setProjectModal({ open: true, project })}>
+                      <PencilIcon />
+                    </button>
+                    <button className="icon-btn danger" onClick={() => removeProject(project.id)}>
+                      <TrashIcon />
+                    </button>
+                  </div>
+                </div>
+                <div className="project-tasks-preview">
+                  {STATUSES.map((status) => (
+                    <div className="project-status-block" key={`${project.id}-${status}`}>
+                      <div className="project-status-head">
+                        <span>{STATUS_LABEL[status]}</span>
+                        <b>{myTasksByProjectAndStatus[project.id]?.[status]?.length || 0}</b>
+                      </div>
+                      <div className="project-status-list">
+                        {(myTasksByProjectAndStatus[project.id]?.[status] || []).slice(0, 3).map((task) => (
+                          <button
+                            key={task.id}
+                            type="button"
+                            className="project-task-link"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              openTaskDetails(task.id, 'preview');
+                            }}
+                          >
+                            {task.title}
+                          </button>
+                        ))}
+                        {(myTasksByProjectAndStatus[project.id]?.[status] || []).length === 0 && (
+                          <span className="muted">No tasks</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-              <div className="project-tasks-preview">
-                {STATUSES.map((status) => (
-                  <div className="project-status-block" key={`${project.id}-${status}`}>
-                    <div className="project-status-head">
-                      <span>{STATUS_LABEL[status]}</span>
-                      <b>{myTasksByProjectAndStatus[project.id]?.[status]?.length || 0}</b>
-                    </div>
-                    <div className="project-status-list">
-                      {(myTasksByProjectAndStatus[project.id]?.[status] || []).slice(0, 3).map((task) => (
+            ))}
+          </div>
+        </aside>
+
+        <main className="center-panel">
+          <header className="board-top card">
+            <div className="board-top-left">
+              <h2>Task board</h2>
+              <p className="muted">{user.username}, here are only your tasks.</p>
+            </div>
+            <button
+              className="btn btn-primary"
+              disabled={!myProjects.length}
+              onClick={() => {
+                const defaultProjectId = projectFilter === 'all' ? myProjects[0]?.id : Number(projectFilter);
+                setTaskModal({
+                  open: true,
+                  mode: 'create',
+                  task: taskToRequest(null, { projectId: defaultProjectId || '' })
+                });
+              }}
+            >
+              + Add task
+            </button>
+          </header>
+
+          <section className="status-grid">
+            {STATUSES.map((status) => (
+              <div className={`status-column card status-column-${statusToClass(status)}`} key={status}>
+                <header>
+                  <div className="status-title-badge">
+                    <h3>{STATUS_LABEL[status]}</h3>
+                  </div>
+                  <span className="status-count-badge">{tasksByStatus[status].length}</span>
+                </header>
+                <div className="card-list">
+                  {tasksByStatus[status].map((task) => (
+                    <article
+                      className="task-card clickable"
+                      key={task.id}
+                      onClick={() => openTaskDetails(task.id)}
+                    >
+                      <div className="task-actions">
                         <button
-                          key={task.id}
-                          type="button"
-                          className="project-task-link"
+                          className="icon-btn"
                           onClick={(event) => {
                             event.stopPropagation();
-                            openTaskDetails(task.id, 'preview');
+                            setTaskModal({ open: true, mode: 'edit', task });
                           }}
                         >
-                          {task.title}
+                          <PencilIcon />
                         </button>
-                      ))}
-                      {(myTasksByProjectAndStatus[project.id]?.[status] || []).length === 0 && (
-                        <span className="muted">No tasks</span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <button className="btn btn-ghost" onClick={logout}>Logout</button>
-      </aside>
-
-      <main className="center-panel">
-        <header className="board-top card">
-          <div className="board-top-left">
-            <div className="board-brand">
-              <img src={googleTasksLogo} alt="Task Manager logo" />
-              <div>
-                <strong>Task Manager</strong>
-                <small>Personal workspace</small>
-              </div>
-            </div>
-            <h2>Task board</h2>
-            <p className="muted">{user.username}, here are only your tasks.</p>
-          </div>
-          <button
-            className="btn btn-primary"
-            disabled={!myProjects.length}
-            onClick={() => {
-              const defaultProjectId = projectFilter === 'all' ? myProjects[0]?.id : Number(projectFilter);
-              setTaskModal({
-                open: true,
-                mode: 'create',
-                task: taskToRequest(null, { projectId: defaultProjectId || '' })
-              });
-            }}
-          >
-            + Add task
-          </button>
-        </header>
-
-        <section className="status-grid">
-          {STATUSES.map((status) => (
-            <div className="status-column card" key={status}>
-              <header>
-                <h3>{STATUS_LABEL[status]}</h3>
-                <span>{tasksByStatus[status].length}</span>
-              </header>
-              <div className="card-list">
-                {tasksByStatus[status].map((task) => (
-                  <article
-                    className="task-card clickable"
-                    key={task.id}
-                    onClick={() => openTaskDetails(task.id)}
-                  >
-                    <div className="task-actions">
-                      <button
-                        className="icon-btn"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          setTaskModal({ open: true, mode: 'edit', task });
-                        }}
-                      >
-                        <PencilIcon />
-                      </button>
-                      <button
-                        className="icon-btn danger"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          removeTask(task.id);
-                        }}
-                      >
-                        <TrashIcon />
-                      </button>
-                    </div>
-                    <h4>{task.title}</h4>
-                    <p className="muted clamp">{task.description || 'No description'}</p>
-                    <div className="meta-grid">
-                      <span><b>Owner:</b> {username(projects.find((p) => p.id === task.projectId)?.ownerId)}</span>
-                      <span><b>Status:</b> {STATUS_LABEL[task.status]}</span>
-                      <span><b>Due:</b> {task.dueDate || 'N/A'}</span>
-                      <span><b>Project:</b> {projectName(task.projectId)}</span>
-                    </div>
-                    <div className="tag-row">
-                      {(task.tagIds || []).map((tagId) => (
-                        <span className="chip" key={tagId}>#{tags.find((tag) => tag.id === tagId)?.name || tagId}</span>
-                      ))}
-                    </div>
-                    <div className="task-card-actions">
-                      <button
-                        className="btn btn-ghost full"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          setTagModal({ open: true, taskId: task.id });
-                        }}
-                      >
-                        Manage Tag
-                      </button>
-                      <button
-                        className="btn btn-ghost full"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          setCommentModal({ open: true, taskId: task.id });
-                        }}
-                      >
-                        Add Comment
-                      </button>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </div>
-          ))}
-        </section>
-      </main>
-
-      <aside className="right-panel card">
-        <h3>User search</h3>
-        <input
-          placeholder="Search users by username"
-          value={userSearch}
-          onChange={(e) => setUserSearch(e.target.value)}
-        />
-
-        <div className="users-list">
-          {searchedUsers.map((candidate) => {
-            const candidateTaskList = userTasks(candidate);
-
-            return (
-              <article className="user-card clickable" key={candidate.id} onClick={() => setSelectedUser(candidate)}>
-                <header>
-                  <div className="user-head">
-                    <AvatarBadge name={candidate.username} />
-                    <strong>{candidate.username}</strong>
-                  </div>
-                  <span>{candidateTaskList.length} tasks</span>
-                </header>
-                <p>{candidate.email}</p>
-                <div className="tiny-list">
-                  {candidateTaskList.slice(0, 3).map((task) => (
-                    <span key={task.id}>{task.title}</span>
+                        <button
+                          className="icon-btn danger"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            removeTask(task.id);
+                          }}
+                        >
+                          <TrashIcon />
+                        </button>
+                      </div>
+                      <h4>{task.title}</h4>
+                      <p className="muted clamp">{task.description || 'No description'}</p>
+                      <div className="meta-grid">
+                        <span><b>Owner:</b> {username(projects.find((p) => p.id === task.projectId)?.ownerId)}</span>
+                        <span><b>Status:</b> {STATUS_LABEL[task.status]}</span>
+                        <span><b>Due:</b> {task.dueDate || 'N/A'}</span>
+                        <span><b>Project:</b> {projectName(task.projectId)}</span>
+                      </div>
+                      <div className="tag-row">
+                        {(task.tagIds || []).map((tagId) => (
+                          <span className="chip" key={tagId}>#{tags.find((tag) => tag.id === tagId)?.name || tagId}</span>
+                        ))}
+                      </div>
+                      <div className="task-card-actions">
+                        <button
+                          className="btn btn-ghost full"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setTagModal({ open: true, taskId: task.id });
+                          }}
+                        >
+                          Manage Tag
+                        </button>
+                        <button
+                          className="btn btn-ghost full"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setCommentModal({ open: true, taskId: task.id });
+                          }}
+                        >
+                          Add Comment
+                        </button>
+                      </div>
+                    </article>
                   ))}
-                  {!candidateTaskList.length && <span>No planned tasks</span>}
                 </div>
-              </article>
-            );
-          })}
-        </div>
-      </aside>
+              </div>
+            ))}
+          </section>
+        </main>
+
+        <aside className="right-panel card">
+          <h3>User search</h3>
+          <input
+            placeholder="Search users by username"
+            value={userSearch}
+            onChange={(e) => setUserSearch(e.target.value)}
+          />
+
+          <div className="users-list">
+            {searchedUsers.map((candidate) => {
+              const candidateTaskList = userTasks(candidate);
+
+              return (
+                <article className="user-card clickable" key={candidate.id} onClick={() => setSelectedUser(candidate)}>
+                  <header>
+                    <div className="user-head">
+                      <AvatarBadge name={candidate.username} />
+                      <strong>{candidate.username}</strong>
+                    </div>
+                    <span>{candidateTaskList.length} tasks</span>
+                  </header>
+                  <p>{candidate.email}</p>
+                  <div className="tiny-list">
+                    {candidateTaskList.slice(0, 3).map((task) => (
+                      <span key={task.id}>{task.title}</span>
+                    ))}
+                    {!candidateTaskList.length && <span>No planned tasks</span>}
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </aside>
+      </div>
 
       {taskModal.open && (
         <TaskModal
@@ -1174,6 +1186,10 @@ function taskToRequest(task, overrides = {}) {
 function AvatarBadge({ name, large = false }) {
   const initial = (name || '?').trim().charAt(0).toUpperCase() || '?';
   return <div className={large ? 'avatar-badge large' : 'avatar-badge'}>{initial}</div>;
+}
+
+function statusToClass(status) {
+  return status.toLowerCase().replace('_', '-');
 }
 
 function PencilIcon() {

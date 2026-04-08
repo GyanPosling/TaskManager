@@ -17,3 +17,5 @@ databaseChangeLog:
       file: db/changelog/changes/008-add-user-password-hash.yaml
   - include:
       file: db/changelog/changes/009-seed-default-tags.yaml
+  - include:
+      file: db/changelog/changes/010-seed-demo-users-projects-tasks.yaml

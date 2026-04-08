@@ -38,17 +38,18 @@ async function parseError(response) {
 }
 
 export async function apiFetch(path, options = {}) {
+  const { auth = true, headers: customHeaders, ...restOptions } = options;
   const headers = {
     'Content-Type': 'application/json',
-    ...(options.headers || {})
+    ...(customHeaders || {})
   };
 
   const token = getToken();
-  if (token) {
+  if (auth && token) {
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const response = await fetch(path, { ...options, headers });
+  const response = await fetch(path, { ...restOptions, headers });
   if (!response.ok) {
     throw new Error(await parseError(response));
   }
@@ -63,6 +64,7 @@ export async function apiFetch(path, options = {}) {
 export async function login(username, password) {
   return apiFetch('/api/auth/login', {
     method: 'POST',
+    auth: false,
     body: JSON.stringify({ username, password })
   });
 }
@@ -70,6 +72,7 @@ export async function login(username, password) {
 export async function register(username, email, password) {
   return apiFetch('/api/auth/register', {
     method: 'POST',
+    auth: false,
     body: JSON.stringify({ username, email, password })
   });
 }

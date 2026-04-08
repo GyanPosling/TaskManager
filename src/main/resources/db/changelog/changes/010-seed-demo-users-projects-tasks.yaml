@@ -1,0 +1,74 @@
+databaseChangeLog:
+  - changeSet:
+      id: 010-seed-demo-users-projects-tasks
+      author: codex
+      changes:
+        - sql:
+            dbms: postgresql
+            splitStatements: false
+            sql: |
+              INSERT INTO users (username, email, password_hash)
+              SELECT
+                su.username,
+                su.email,
+                NULL
+              FROM (
+                VALUES
+                  ('alex', 'alex@example.com'),
+                  ('maria', 'maria@example.com'),
+                  ('daniel', 'daniel@example.com'),
+                  ('sophia', 'sophia@example.com'),
+                  ('michael', 'michael@example.com'),
+                  ('emily', 'emily@example.com'),
+                  ('david', 'david@example.com'),
+                  ('olivia', 'olivia@example.com'),
+                  ('james', 'james@example.com'),
+                  ('anna', 'anna@example.com')
+              ) AS su(username, email)
+              ON CONFLICT (username) DO NOTHING;
+
+              INSERT INTO projects (name, description, owner_id)
+              SELECT
+                format('Demo Project %s', u.username),
+                'Auto-generated demo project',
+                u.id
+              FROM users u
+              WHERE u.username IN ('alex', 'maria', 'daniel', 'sophia', 'michael', 'emily', 'david', 'olivia', 'james', 'anna')
+                AND NOT EXISTS (
+                  SELECT 1
+                  FROM projects p
+                  WHERE p.owner_id = u.id
+                );
+
+              INSERT INTO tasks (title, description, status, due_date, project_id, assignee_id)
+              SELECT
+                CASE s.status_name
+                  WHEN 'TODO' THEN format('Plan weekly priorities (%s)', u.username)
+                  WHEN 'IN_PROGRESS' THEN format('Implement task board improvements (%s)', u.username)
+                  WHEN 'DONE' THEN format('Review completed sprint items (%s)', u.username)
+                END,
+                CASE s.status_name
+                  WHEN 'TODO' THEN 'Define goals and break them into actionable tasks.'
+                  WHEN 'IN_PROGRESS' THEN 'Work in progress on dashboard and workflow updates.'
+                  WHEN 'DONE' THEN 'Finished work, verify outcomes and capture notes.'
+                END,
+                s.status_name::task_status,
+                CURRENT_DATE + s.day_offset,
+                p.id,
+                u.id
+              FROM users u
+              JOIN projects p ON p.owner_id = u.id
+              JOIN (
+                VALUES
+                  ('TODO', 7),
+                  ('IN_PROGRESS', 14),
+                  ('DONE', 2)
+              ) AS s(status_name, day_offset) ON true
+              WHERE u.username IN ('alex', 'maria', 'daniel', 'sophia', 'michael', 'emily', 'david', 'olivia', 'james', 'anna')
+                AND NOT EXISTS (
+                  SELECT 1
+                  FROM tasks t
+                  WHERE t.project_id = p.id
+                    AND t.assignee_id = u.id
+                    AND t.status = s.status_name::task_status
+                );

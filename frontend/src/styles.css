@@ -45,9 +45,37 @@ textarea {
   font: inherit;
 }
 
+/* Flat UI: keep only a tiny corner radius across the app */
+button,
+input,
+select,
+textarea,
+.btn,
+.card,
+.pill,
+.chip,
+.icon-btn,
+.task-card,
+.user-card,
+.project-status-block,
+.project-task-link,
+.auth-box,
+.auth-links a,
+.modal,
+.comment,
+.user-task-column,
+.user-task-card,
+.status-column,
+.status-title-badge,
+.status-count-badge,
+.topbar-profile-btn,
+.app-topbar-brand img {
+  border-radius: 4px !important;
+}
+
 .btn {
   border: 0;
-  border-radius: 14px;
+  border-radius: 10px;
   padding: 10px 16px;
   cursor: pointer;
   font-weight: 700;
@@ -86,7 +114,7 @@ textarea {
 .card {
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 22px;
+  border-radius: 14px;
   box-shadow: var(--shadow);
 }
 
@@ -277,7 +305,7 @@ select,
 textarea {
   width: 100%;
   border: 1px solid #cfd8ea;
-  border-radius: 14px;
+  border-radius: 10px;
   padding: 11px 13px;
   color: var(--text);
   background: #fff;
@@ -318,8 +346,105 @@ textarea {
   margin-top: 16px;
 }
 
-.board-shell {
+.dashboard-layout {
   min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+.app-topbar {
+  width: 100%;
+  min-height: 96px;
+  background: linear-gradient(120deg, #2f4c65 0%, #3d607e 52%, #365570 100%);
+  border-bottom: 1px solid #53708d;
+  padding: 14px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  box-shadow: 0 10px 26px rgba(26, 49, 74, 0.28);
+}
+
+.app-topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #f2f6ff;
+}
+
+.app-topbar-brand img {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  border: 1px solid #41577f;
+  object-fit: cover;
+}
+
+.app-topbar-brand strong {
+  display: block;
+  font-size: 27px;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+
+.app-topbar-brand small {
+  color: #d7e4f4;
+}
+
+.app-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-topbar-ghost {
+  height: 42px;
+  min-height: 42px;
+  color: #244260;
+  background: #dbe5f0;
+  border: 1px solid #b7c8da;
+  padding: 0 18px;
+}
+
+.btn-topbar-ghost:hover {
+  background: #e7eef7;
+}
+
+.topbar-profile-btn {
+  height: 42px;
+  border: 1px solid #b7c8da;
+  border-radius: 10px;
+  padding: 0 12px 0 7px;
+  background: #dbe5f0;
+  color: #244260;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.topbar-profile-btn:hover {
+  transform: translateY(-1px);
+  background: #e7eef7;
+  border-color: #a8bdd3;
+}
+
+.topbar-profile-btn .avatar-badge {
+  width: 32px;
+  height: 32px;
+}
+
+.topbar-profile-btn span {
+  font-weight: 700;
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.board-shell {
+  min-height: 0;
   display: grid;
   gap: 14px;
   grid-template-columns: 280px 1fr 320px;
@@ -353,29 +478,6 @@ textarea {
   gap: 8px;
 }
 
-.board-brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.board-brand img {
-  width: 40px;
-  height: 40px;
-  border-radius: 11px;
-  border: 1px solid #d1d9eb;
-  object-fit: cover;
-}
-
-.board-brand strong {
-  display: block;
-  line-height: 1;
-}
-
-.board-brand small {
-  color: var(--muted);
-}
-
 .status-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(260px, 1fr));
@@ -384,37 +486,89 @@ textarea {
 }
 
 .status-column {
-  min-height: calc(100vh - 130px);
-  padding: 12px;
+  --status-color: #8f2436;
+  --status-soft: #faeef1;
+  --status-title-text: #ffffff;
+  min-height: calc(100vh - 240px);
+  padding: 0 0 12px;
   display: grid;
   gap: 10px;
   align-content: start;
   background: linear-gradient(180deg, #ffffff, #f9fbff);
+  border: 2px solid var(--status-color);
+  border-radius: 4px !important;
+  overflow: hidden;
 }
 
 .status-column > header {
+  position: relative;
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
+  min-height: 44px;
+  width: calc(100% + 4px);
+  margin: -2px -2px 0;
 }
 
-.status-column > header span {
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: #ebf2ff;
-  color: #3558a9;
+.status-title-badge {
+  background: var(--status-color);
+  border-radius: 0 !important;
+  min-height: 44px;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.status-title-badge h3 {
+  color: var(--status-title-text);
+  text-align: center;
+}
+
+.status-count-badge {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  min-width: 30px;
+  text-align: center;
+  border: 1px solid color-mix(in srgb, var(--status-color) 46%, #ffffff);
+  border-radius: 4px !important;
+  padding: 3px 8px;
+  color: color-mix(in srgb, var(--status-color) 74%, #21314a);
+  background: color-mix(in srgb, var(--status-color) 14%, #ffffff);
   font-size: 12px;
   font-weight: 700;
+}
+
+.status-column-to-do {
+  --status-color: #8e2535;
+  --status-soft: #fcf0f2;
+  --status-title-text: #ffffff;
+}
+
+.status-column-in-progress {
+  --status-color: #c5911f;
+  --status-soft: #fff8e6;
+  --status-title-text: #38290a;
+}
+
+.status-column-done {
+  --status-color: #2f8b59;
+  --status-soft: #edf9f1;
+  --status-title-text: #ffffff;
 }
 
 .card-list {
   display: grid;
   gap: 10px;
+  padding: 0 12px;
 }
 
 .task-card {
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: 10px;
   padding: 12px;
   display: grid;
   gap: 8px;
@@ -433,16 +587,28 @@ textarea {
 }
 
 .task-card h4 {
-  padding-right: 108px;
+  padding-right: 82px;
 }
 
 .task-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 6px;
+  gap: 4px;
   position: absolute;
-  top: 12px;
-  right: 12px;
+  top: 10px;
+  right: 10px;
+}
+
+.task-actions .icon-btn {
+  width: 34px;
+  min-height: 34px;
+  height: 34px;
+  padding: 0;
+}
+
+.task-actions .icon-btn svg {
+  width: 12px;
+  height: 12px;
 }
 
 .meta-grid {
@@ -461,12 +627,17 @@ textarea {
 
 .chip {
   border: 1px solid #c7d7fa;
-  border-radius: 999px;
+  border-radius: 8px;
   padding: 4px 10px;
+  display: inline-flex;
+  align-items: center;
   font-size: 12px;
+  line-height: 1.1;
   font-weight: 700;
   color: #3558a9;
   background: #edf2ff;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .chip.active {
@@ -480,11 +651,12 @@ textarea {
   display: flex;
   gap: 7px;
   flex-wrap: wrap;
+  align-items: flex-start;
 }
 
 .pill {
   border: 1px solid var(--line);
-  border-radius: 11px;
+  border-radius: 9px;
   padding: 9px 12px;
   text-align: left;
   background: #fff;
@@ -530,7 +702,7 @@ textarea {
 
 .project-status-block {
   border: 1px solid #d6def0;
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 8px;
   background: #f8fbff;
   display: grid;
@@ -551,7 +723,7 @@ textarea {
 
 .project-task-link {
   border: 1px solid #d4dcef;
-  border-radius: 8px;
+  border-radius: 7px;
   background: #fff;
   padding: 6px 8px;
   text-align: left;
@@ -584,7 +756,7 @@ textarea {
   width: 48px;
   min-height: 48px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 8px;
   display: grid;
   place-items: center;
   cursor: pointer;
@@ -906,6 +1078,10 @@ textarea {
 }
 
 @media (max-width: 1200px) {
+  .app-topbar-brand strong {
+    font-size: 24px;
+  }
+
   .board-shell {
     grid-template-columns: 250px 1fr;
   }
@@ -920,6 +1096,16 @@ textarea {
 }
 
 @media (max-width: 960px) {
+  .app-topbar {
+    padding: 12px;
+    flex-wrap: wrap;
+  }
+
+  .app-topbar-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
   .landing-header-inner {
     flex-direction: column;
     align-items: center;
@@ -948,6 +1134,7 @@ textarea {
 
   .board-shell {
     grid-template-columns: 1fr;
+    padding: 12px;
   }
 
   .status-grid {
